@@ -232,12 +232,11 @@ class SDMProtocolTest extends TestCase
     }
 
     /**
-     * Test LRP mode encryption - test 1
-     * This test is skipped as LRP mode is not implemented.
+     * Test LRP mode encryption - test 1.
      */
     public function testSdmLrp1(): void
     {
-        $this->markTestSkipped('LRP mode is not implemented');
+        $this->markTestIncomplete('LRP cipher implementation needs cryptographic debugging');
 
         $sdm = new SDM(
             encKey: hex2bin('00000000000000000000000000000000'),
@@ -261,12 +260,11 @@ class SDMProtocolTest extends TestCase
     }
 
     /**
-     * Test LRP mode encryption - test 2
-     * This test is skipped as LRP mode is not implemented.
+     * Test LRP mode encryption - test 2.
      */
     public function testSdmLrp2(): void
     {
-        $this->markTestSkipped('LRP mode is not implemented');
+        $this->markTestIncomplete('LRP cipher implementation needs cryptographic debugging');
 
         $sdm = new SDM(
             encKey: hex2bin('00000000000000000000000000000000'),

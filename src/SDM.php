@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace KDuma\SDM;
 
 use KDuma\SDM\Cipher\AESCipher;
+use KDuma\SDM\Cipher\LRPCipher;
 use KDuma\SDM\Exceptions\DecryptionException;
 use KDuma\SDM\Exceptions\ValidationException;
 
@@ -161,10 +162,6 @@ class SDM implements SDMInterface
             $mode = EncMode::AES;
         }
 
-        if (EncMode::LRP === $mode) {
-            throw new \RuntimeException('LRP mode is not supported');
-        }
-
         $inputBuf = '';
 
         if (null !== $encFileData) {
@@ -175,6 +172,32 @@ class SDM implements SDMInterface
             }
 
             $inputBuf .= strtoupper(bin2hex($encFileData)).$sdmmacParamText;
+        }
+
+        if (EncMode::LRP === $mode) {
+            // LRP mode - derive CMAC session key using SV2 with different format
+            $sv2stream = "\x00\x01\x00\x80".$piccData;
+
+            // Pad to block size + 2 bytes, then add trailer
+            $paddedLength = (int) (ceil(strlen($sv2stream) / 16) * 16) + 2;
+            $sv2stream = str_pad($sv2stream, $paddedLength - 2, "\x00");
+            $sv2stream .= "\x1E\xE1";
+
+            // Derive master key using LRP CMAC
+            $lrpCipher = new LRPCipher($sdmFileReadKey, 0);
+            $masterKey = $lrpCipher->cmac($sv2stream, $sdmFileReadKey);
+
+            // Calculate CMAC with session key
+            $lrpSession = new LRPCipher($masterKey, 1);
+            $macDigest = $lrpSession->cmac($inputBuf, $masterKey);
+
+            // Extract even bytes (0, 2, 4, 6, 8, 10, 12, 14)
+            $result = '';
+            for ($i = 0; $i < 16; $i += 2) {
+                $result .= $macDigest[$i];
+            }
+
+            return $result;
         }
 
         // AES mode - derive CMAC session key using SV2
@@ -219,7 +242,22 @@ class SDM implements SDMInterface
         }
 
         if (EncMode::LRP === $mode) {
-            throw new \RuntimeException('LRP mode is not supported');
+            // LRP mode - derive encryption session key using SV1 with different format
+            $sv1stream = "\x00\x01\x00\x80".$piccData;
+
+            // Pad to block size + 2 bytes, then add trailer
+            $paddedLength = (int) (ceil(strlen($sv1stream) / 16) * 16) + 2;
+            $sv1stream = str_pad($sv1stream, $paddedLength - 2, "\x00");
+            $sv1stream .= "\x1E\xE1";
+
+            // Derive master key using LRP CMAC
+            $lrpCipher = new LRPCipher($sdmFileReadKey, 0);
+            $masterKey = $lrpCipher->cmac($sv1stream, $sdmFileReadKey);
+
+            // Decrypt file data using LRP with mode 1 and read counter as IV
+            $lrpSession = new LRPCipher($masterKey, 1, $readCtr.str_repeat("\x00", 13), false);
+
+            return $lrpSession->decrypt($encFileData, $masterKey, $readCtr.str_repeat("\x00", 13));
         }
 
         // AES mode - derive encryption session key using SV1
@@ -261,10 +299,6 @@ class SDM implements SDMInterface
     ): array {
         if (null === $mode) {
             $mode = EncMode::AES;
-        }
-
-        if (EncMode::LRP === $mode) {
-            throw new \RuntimeException('LRP mode is not supported');
         }
 
         // Reverse the read counter bytes for little-endian to big-endian conversion
@@ -347,11 +381,17 @@ class SDM implements SDMInterface
         $mode = $this->getEncryptionMode($piccEncData);
 
         if (EncMode::LRP === $mode) {
-            throw new \RuntimeException('LRP mode is not supported');
-        }
+            // LRP mode - extract PICC random and decrypt using LRP
+            $piccRandom = substr($piccEncData, 0, 8);
+            $encryptedPiccData = substr($piccEncData, 8);
 
-        // AES mode - decrypt using CBC with zero IV
-        $plaintext = $this->cipher->decrypt($piccEncData, $sdmMetaReadKey, str_repeat("\x00", 16));
+            // Use LRP to decrypt PICC data
+            $lrpCipher = new LRPCipher($sdmMetaReadKey, 0, $piccRandom.str_repeat("\x00", 8), true);
+            $plaintext = $lrpCipher->decrypt($encryptedPiccData, $sdmMetaReadKey, $piccRandom.str_repeat("\x00", 8));
+        } else {
+            // AES mode - decrypt using CBC with zero IV
+            $plaintext = $this->cipher->decrypt($piccEncData, $sdmMetaReadKey, str_repeat("\x00", 16));
+        }
 
         // Parse PICCDataTag byte to extract configuration flags and UID length
         $piccDataTag = $plaintext[0];

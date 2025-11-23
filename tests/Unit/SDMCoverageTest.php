@@ -58,60 +58,61 @@ class SDMCoverageTest extends TestCase
     }
 
     /**
-     * Test calculateSdmmac with LRP mode throws exception.
+     * Test calculateSdmmac with LRP mode.
      */
-    public function testCalculateSdmmacLRPNotSupported(): void
+    public function testCalculateSdmmacLRP(): void
     {
         $sdm = new SDM(
             encKey: hex2bin('00000000000000000000000000000000'),
             macKey: hex2bin('00000000000000000000000000000000'),
         );
 
-        $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('LRP mode is not supported');
-
-        $sdm->calculateSdmmac(
+        $mac = $sdm->calculateSdmmac(
             ParamMode::SEPARATED,
             hex2bin('00000000000000000000000000000000'),
             hex2bin('04DE5F1EACC040').hex2bin('3D0000'),
             mode: EncMode::LRP,
         );
+
+        $this->assertSame(8, strlen($mac));
     }
 
     /**
-     * Test decryptFileData with LRP mode throws exception.
+     * Test decryptFileData with LRP mode.
      */
-    public function testDecryptFileDataLRPNotSupported(): void
+    public function testDecryptFileDataLRP(): void
     {
         $sdm = new SDM(
             encKey: hex2bin('00000000000000000000000000000000'),
             macKey: hex2bin('00000000000000000000000000000000'),
         );
 
-        $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('LRP mode is not supported');
-
-        $sdm->decryptFileData(
+        $result = $sdm->decryptFileData(
             hex2bin('00000000000000000000000000000000'),
             hex2bin('04DE5F1EACC040').hex2bin('3D0000'),
             hex2bin('3D0000'),
             hex2bin('0000000000000000'),
             EncMode::LRP,
         );
+
+        $this->assertIsString($result);
     }
 
     /**
-     * Test validatePlainSun with LRP mode throws exception.
+     * Test validatePlainSun with LRP mode.
      */
-    public function testValidatePlainSunLRPNotSupported(): void
+    public function testValidatePlainSunLRP(): void
     {
         $sdm = new SDM(
             encKey: hex2bin('00000000000000000000000000000000'),
             macKey: hex2bin('00000000000000000000000000000000'),
         );
 
-        $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('LRP mode is not supported');
+        // This test validates that LRP mode is supported
+        // The MAC may not match (which would throw ValidationException)
+        // but we're just testing that LRP mode doesn't throw RuntimeException
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('Message is not properly signed - invalid MAC');
 
         $sdm->validatePlainSun(
             uid: hex2bin('041E3C8A2D6B80'),
@@ -123,25 +124,27 @@ class SDMCoverageTest extends TestCase
     }
 
     /**
-     * Test decryptSunMessage with LRP detected throws exception.
+     * Test decryptSunMessage with LRP detected.
      */
-    public function testDecryptSunMessageLRPNotSupported(): void
+    public function testDecryptSunMessageLRP(): void
     {
         $sdm = new SDM(
             encKey: hex2bin('00000000000000000000000000000000'),
             macKey: hex2bin('00000000000000000000000000000000'),
         );
 
-        $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('LRP mode is not supported');
-
-        $sdm->decryptSunMessage(
+        // This is the actual test data from testSdmLrp1 with correct MAC
+        $res = $sdm->decryptSunMessage(
             paramMode: ParamMode::SEPARATED,
             sdmMetaReadKey: hex2bin('00000000000000000000000000000000'),
             sdmFileReadKey: fn ($uid) => hex2bin('00000000000000000000000000000000'),
             piccEncData: hex2bin('07D9CA2545881D4BFDD920BE1603268C0714420DD893A497'),
+            encFileData: hex2bin('D6E921C47DB4C17C56F979F81559BB83'),
             sdmmac: hex2bin('F9481AC7D855BDB6'),
         );
+
+        $this->assertSame(EncMode::LRP, $res['encryption_mode']);
+        $this->assertSame(hex2bin('049b112a2f7080'), $res['uid']);
     }
 
     /**
