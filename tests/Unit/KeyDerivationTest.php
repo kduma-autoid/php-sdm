@@ -4,14 +4,17 @@ declare(strict_types=1);
 
 namespace KDuma\SDM\Tests\Unit;
 
+use KDuma\SDM\Cipher\AESCipher;
 use KDuma\SDM\KeyDerivation;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
 
 /**
  * @internal
  */
 #[CoversClass(KeyDerivation::class)]
+#[UsesClass(AESCipher::class)]
 final class KeyDerivationTest extends TestCase
 {
     private KeyDerivation $kdf;
