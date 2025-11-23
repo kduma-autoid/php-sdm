@@ -33,6 +33,11 @@ class KeyDerivation
      */
     public function deriveUndiversifiedKey(string $masterKey, int $keyNumber): string
     {
+        // Validate master key length
+        if (16 !== strlen($masterKey)) {
+            throw new \InvalidArgumentException(sprintf('Master key must be exactly 16 bytes, got %d bytes', strlen($masterKey)));
+        }
+
         // Check for factory key (all zeros)
         if ($masterKey === str_repeat("\x00", 16)) {
             return str_repeat("\x00", 16);
@@ -67,6 +72,16 @@ class KeyDerivation
      */
     public function deriveTagKey(string $masterKey, string $uid, int $keyNumber): string
     {
+        // Validate master key length
+        if (16 !== strlen($masterKey)) {
+            throw new \InvalidArgumentException(sprintf('Master key must be exactly 16 bytes, got %d bytes', strlen($masterKey)));
+        }
+
+        // Validate UID length
+        if (7 !== strlen($uid)) {
+            throw new \InvalidArgumentException(sprintf('UID must be exactly 7 bytes, got %d bytes', strlen($uid)));
+        }
+
         // Check for factory key (all zeros)
         if ($masterKey === str_repeat("\x00", 16)) {
             return str_repeat("\x00", 16);

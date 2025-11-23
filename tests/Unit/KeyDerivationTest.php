@@ -131,4 +131,43 @@ final class KeyDerivationTest extends TestCase
             'K2 tag key derivation with UID 05050505050505 and key number 2 failed',
         );
     }
+
+    /**
+     * Test that invalid master key length throws exception.
+     */
+    public function testInvalidMasterKeyLength(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Master key must be exactly 16 bytes, got 8 bytes');
+
+        $this->kdf->deriveUndiversifiedKey('shortkey', 1);
+    }
+
+    /**
+     * Test that invalid UID length throws exception.
+     */
+    public function testInvalidUidLength(): void
+    {
+        $masterKey = hex2bin('C9EB67DF090AFF47C3B19A2516680B9D');
+        $this->assertNotFalse($masterKey);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('UID must be exactly 7 bytes, got 5 bytes');
+
+        $this->kdf->deriveTagKey($masterKey, 'short', 1);
+    }
+
+    /**
+     * Test that invalid key number throws exception.
+     */
+    public function testInvalidKeyNumber(): void
+    {
+        $masterKey = hex2bin('C9EB67DF090AFF47C3B19A2516680B9D');
+        $this->assertNotFalse($masterKey);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Only key number 1 is supported for undiversified keys');
+
+        $this->kdf->deriveUndiversifiedKey($masterKey, 2);
+    }
 }
