@@ -75,7 +75,7 @@ class KeyDerivation
      * Derive an undiversified key from a master key.
      *
      * @param string $masterKey The master key (binary, 16 bytes)
-     * @param int    $keyNumber The key number (1 or 2)
+     * @param int    $keyNumber The key number (must be 1)
      *
      * @return string The derived key (binary, 16 bytes)
      */
