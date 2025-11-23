@@ -338,27 +338,20 @@ class LRPCipher implements CipherInterface
      */
     private static function incrementCounter(string $counter): string
     {
-        $maxBitLen = strlen($counter) * 8;
+        // Byte-by-byte increment to avoid PHP integer overflow issues
+        // Increment from the rightmost byte (big-endian)
+        $result = $counter;
+        $carry = 1;
 
-        // Convert counter to integer
-        $ctrValue = 0;
-        for ($i = 0; $i < strlen($counter); ++$i) {
-            $ctrValue = ($ctrValue << 8) | ord($counter[$i]);
+        for ($i = strlen($result) - 1; $i >= 0 && $carry; --$i) {
+            $byteValue = ord($result[$i]) + $carry;
+            $result[$i] = chr($byteValue & 0xFF);
+            $carry = $byteValue >> 8;
         }
 
-        // Increment
-        ++$ctrValue;
-
-        // Check for overflow
-        if ($ctrValue >> $maxBitLen) {
+        // If carry is still 1, counter overflowed - wrap to zero
+        if ($carry) {
             return str_repeat("\x00", strlen($counter));
-        }
-
-        // Convert back to bytes
-        $result = '';
-        for ($i = strlen($counter) - 1; $i >= 0; --$i) {
-            $result = chr($ctrValue & 0xFF).$result;
-            $ctrValue >>= 8;
         }
 
         return $result;
