@@ -31,8 +31,24 @@ class ParameterParser
         $encFileData = $request->input($paramNames['enc_file_data']);
         $sdmmac = $request->input($paramNames['sdmmac']);
 
-        if (!$piccData || !$sdmmac) {
-            throw new \InvalidArgumentException('Missing required parameters');
+        // Validate required parameters are present and non-empty
+        if (empty($piccData) || empty($sdmmac)) {
+            throw new \InvalidArgumentException(
+                sprintf('Missing required parameters: %s, %s', $paramNames['enc_picc_data'], $paramNames['sdmmac'])
+            );
+        }
+
+        // Validate hex string lengths are even
+        if (strlen($piccData) % 2 !== 0) {
+            throw new \InvalidArgumentException(
+                sprintf('Invalid %s parameter: must have even length', $paramNames['enc_picc_data'])
+            );
+        }
+
+        if (strlen($sdmmac) % 2 !== 0) {
+            throw new \InvalidArgumentException(
+                sprintf('Invalid %s parameter: must have even length', $paramNames['sdmmac'])
+            );
         }
 
         // Decode hex strings to binary
@@ -40,14 +56,22 @@ class ParameterParser
         $sdmmacBin = hex2bin($sdmmac);
 
         if ($piccDataBin === false || $sdmmacBin === false) {
-            throw new \InvalidArgumentException('Failed to decode parameters');
+            throw new \InvalidArgumentException('Failed to decode parameters: invalid hexadecimal format');
         }
 
         $encFileDataBin = null;
-        if ($encFileData) {
+        if (!empty($encFileData)) {
+            if (strlen($encFileData) % 2 !== 0) {
+                throw new \InvalidArgumentException(
+                    sprintf('Invalid %s parameter: must have even length', $paramNames['enc_file_data'])
+                );
+            }
+
             $encFileDataBin = hex2bin($encFileData);
             if ($encFileDataBin === false) {
-                throw new \InvalidArgumentException('Failed to decode enc_file_data parameter');
+                throw new \InvalidArgumentException(
+                    sprintf('Failed to decode %s parameter: invalid hexadecimal format', $paramNames['enc_file_data'])
+                );
             }
         }
 
@@ -75,8 +99,30 @@ class ParameterParser
         $ctr = $request->input($paramNames['ctr']);
         $sdmmac = $request->input($paramNames['sdmmac']);
 
-        if (!$uid || !$ctr || !$sdmmac) {
-            throw new \InvalidArgumentException('Missing required parameters');
+        // Validate required parameters are present and non-empty
+        if (empty($uid) || empty($ctr) || empty($sdmmac)) {
+            throw new \InvalidArgumentException(
+                sprintf('Missing required parameters: %s, %s, %s', $paramNames['uid'], $paramNames['ctr'], $paramNames['sdmmac'])
+            );
+        }
+
+        // Validate hex string lengths are even
+        if (strlen($uid) % 2 !== 0) {
+            throw new \InvalidArgumentException(
+                sprintf('Invalid %s parameter: must have even length', $paramNames['uid'])
+            );
+        }
+
+        if (strlen($ctr) % 2 !== 0) {
+            throw new \InvalidArgumentException(
+                sprintf('Invalid %s parameter: must have even length', $paramNames['ctr'])
+            );
+        }
+
+        if (strlen($sdmmac) % 2 !== 0) {
+            throw new \InvalidArgumentException(
+                sprintf('Invalid %s parameter: must have even length', $paramNames['sdmmac'])
+            );
         }
 
         // Decode hex strings to binary
@@ -85,7 +131,7 @@ class ParameterParser
         $sdmmacBin = hex2bin($sdmmac);
 
         if ($uidBin === false || $ctrBin === false || $sdmmacBin === false) {
-            throw new \InvalidArgumentException('Failed to decode parameters');
+            throw new \InvalidArgumentException('Failed to decode parameters: invalid hexadecimal format');
         }
 
         return [
@@ -102,14 +148,24 @@ class ParameterParser
      */
     private static function parseBulkMode(string $bulkParam, string $sdmmacParamName): array
     {
+        // Validate bulk parameter is not empty
+        if (empty($bulkParam)) {
+            throw new \InvalidArgumentException('Bulk parameter is empty');
+        }
+
         // Remove the SDMMAC parameter suffix if present
         $sdmmacSuffix = '&' . $sdmmacParamName . '=';
         $bulkParam = str_replace($sdmmacSuffix, '', $bulkParam);
 
+        // Validate hex string length is even
+        if (strlen($bulkParam) % 2 !== 0) {
+            throw new \InvalidArgumentException('Bulk parameter must have even length');
+        }
+
         // Decode the hex string
         $data = hex2bin($bulkParam);
         if ($data === false) {
-            throw new \InvalidArgumentException('Failed to decode bulk parameter');
+            throw new \InvalidArgumentException('Failed to decode bulk parameter: invalid hexadecimal format');
         }
 
         // SDMMAC is always the last 8 bytes
