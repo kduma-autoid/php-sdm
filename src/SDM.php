@@ -40,6 +40,27 @@ class SDM implements SDMInterface
     private const SV1_PREFIX_ENC = "\xC3\x3C\x00\x01\x00\x80";
 
     /**
+     * LRP protocol version identifier.
+     *
+     * Used as a prefix in LRP session vector construction for both SV1 and SV2.
+     * This 4-byte sequence identifies the protocol version in LRP mode operations.
+     *
+     * @see AN12304 Section 3 - Leakage Resilient Primitive (LRP)
+     */
+    private const LRP_PROTOCOL_PREFIX = "\x00\x01\x00\x80";
+
+    /**
+     * LRP stream terminator.
+     *
+     * 2-byte trailer appended to padded LRP session vectors before CMAC calculation.
+     * This terminator is added after padding the session vector to a multiple of
+     * the block size (16 bytes).
+     *
+     * @see AN12304 Section 3 - Leakage Resilient Primitive (LRP)
+     */
+    private const LRP_STREAM_TRAILER = "\x1E\xE1";
+
+    /**
      * PICCDataTag bit mask for UID mirroring enabled flag.
      *
      * Bit 7 of PICCDataTag byte indicates if UID is included in the encrypted data.
@@ -178,13 +199,13 @@ class SDM implements SDMInterface
 
         if (EncMode::LRP === $mode) {
             // LRP mode - derive CMAC session key using SV2 with different format
-            $sv2stream = "\x00\x01\x00\x80".$piccData;
+            $sv2stream = self::LRP_PROTOCOL_PREFIX.$piccData;
 
             // Pad until (length + 2) is a multiple of block size, then add 2-byte trailer
             while ((strlen($sv2stream) + 2) % 16 !== 0) {
                 $sv2stream .= "\x00";
             }
-            $sv2stream .= "\x1E\xE1";
+            $sv2stream .= self::LRP_STREAM_TRAILER;
 
             // Derive master key using LRP CMAC
             $lrpCipher = new LRPCipher($sdmFileReadKey, 0);
@@ -252,13 +273,13 @@ class SDM implements SDMInterface
 
         if (EncMode::LRP === $mode) {
             // LRP mode - derive encryption session key using SV1 with different format
-            $sv1stream = "\x00\x01\x00\x80".$piccData;
+            $sv1stream = self::LRP_PROTOCOL_PREFIX.$piccData;
 
             // Pad until (length + 2) is a multiple of block size, then add 2-byte trailer
             while ((strlen($sv1stream) + 2) % 16 !== 0) {
                 $sv1stream .= "\x00";
             }
-            $sv1stream .= "\x1E\xE1";
+            $sv1stream .= self::LRP_STREAM_TRAILER;
 
             // Derive master key using LRP CMAC
             $lrpCipher = new LRPCipher($sdmFileReadKey, 0);
