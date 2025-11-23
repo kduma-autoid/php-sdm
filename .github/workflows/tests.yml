@@ -46,7 +46,9 @@ jobs:
         run: composer test
 
       - name: Run PHPStan
+        if: success() || failure()
         run: composer phpstan
 
       - name: Check code style
+        if: success() || failure()
         run: composer cs-check
