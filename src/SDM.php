@@ -406,7 +406,7 @@ class SDM implements SDMInterface
 
         // Throw UID length error after MAC calculation (timing attack mitigation)
         if ($uidLengthError) {
-            throw new DecryptionException('Unsupported UID length');
+            throw new DecryptionException('Failed to decrypt PICCData - invalid encryption key or malformed data');
         }
 
         // Verify MAC using constant-time comparison

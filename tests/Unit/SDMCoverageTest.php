@@ -150,7 +150,7 @@ class SDMCoverageTest extends TestCase
     public function testDecryptSunMessageUnsupportedUIDLength(): void
     {
         $this->expectException(DecryptionException::class);
-        $this->expectExceptionMessage('Unsupported UID length');
+        $this->expectExceptionMessage('Failed to decrypt PICCData - invalid encryption key or malformed data');
 
         $sdm = new SDM(
             encKey: hex2bin('00000000000000000000000000000000'),
