@@ -362,42 +362,55 @@ class SDM implements SDMInterface
         $dataStream = '';
         $offset = 1;
 
-        // Validate UID length - only 7-byte UIDs are supported by NTAG 424 DNA
-        if (self::PICC_SUPPORTED_UID_LENGTH !== $uidLength) {
-            // Fake SDMMAC calculation to avoid potential timing attacks
-            $this->calculateSdmmac($paramMode, $sdmFileReadKey(str_repeat("\x00", 7)), str_repeat("\x00", 10), $encFileData, $mode);
+        // Track UID length validation error without throwing immediately (timing attack mitigation)
+        // Other errors are thrown immediately as they don't reveal cryptographic information
+        $uidLengthError = false;
 
+        // Validate UID length - only 7-byte UIDs are supported by NTAG 424 DNA
+        // Continue execution with fake data to maintain constant timing
+        if (self::PICC_SUPPORTED_UID_LENGTH !== $uidLength) {
+            $uidLengthError = true;
+            // Use fake UID for remaining operations
+            $uid = str_repeat("\x00", 7);
+            $dataStream = str_repeat("\x00", 10);
+        } else {
+            // Valid UID length - extract real data
+            if ($uidMirroringEn) {
+                $uid = substr($plaintext, $offset, $uidLength);
+                $dataStream .= $uid;
+                $offset += $uidLength;
+            }
+
+            if ($sdmReadCtrEn) {
+                $readCtr = substr($plaintext, $offset, 3);
+                $dataStream .= $readCtr;
+                $unpacked = unpack('V', $readCtr."\x00");
+                if (false === $unpacked) {
+                    throw new DecryptionException('Failed to unpack read counter');
+                }
+                $readCtrNum = $unpacked[1]; // little-endian 3-byte to int
+            }
+
+            if (null === $uid) {
+                throw new DecryptionException('UID cannot be null');
+            }
+        }
+
+        // Always perform MAC calculation (real or fake) for constant timing
+        $fileKey = $sdmFileReadKey($uid);
+        $calculatedMac = $this->calculateSdmmac($paramMode, $fileKey, $dataStream, $encFileData, $mode);
+
+        // Throw UID length error after MAC calculation (timing attack mitigation)
+        if ($uidLengthError) {
             throw new DecryptionException('Unsupported UID length');
         }
 
-        if ($uidMirroringEn) {
-            $uid = substr($plaintext, $offset, $uidLength);
-            $dataStream .= $uid;
-            $offset += $uidLength;
-        }
-
-        if ($sdmReadCtrEn) {
-            $readCtr = substr($plaintext, $offset, 3);
-            $dataStream .= $readCtr;
-            $unpacked = unpack('V', $readCtr."\x00");
-            if (false === $unpacked) {
-                throw new DecryptionException('Failed to unpack read counter');
-            }
-            $readCtrNum = $unpacked[1]; // little-endian 3-byte to int
-        }
-
-        if (null === $uid) {
-            throw new DecryptionException('UID cannot be null');
-        }
-
-        $fileKey = $sdmFileReadKey($uid);
-
-        $calculatedMac = $this->calculateSdmmac($paramMode, $fileKey, $dataStream, $encFileData, $mode);
-
+        // Verify MAC using constant-time comparison
         if (!\hash_equals($sdmmac, $calculatedMac)) {
             throw new ValidationException('Message is not properly signed - invalid MAC');
         }
 
+        // Decrypt file data if present
         if (null !== $encFileData) {
             if (null === $readCtr) {
                 throw new DecryptionException('SDMReadCtr is required to decipher SDMENCFileData');
