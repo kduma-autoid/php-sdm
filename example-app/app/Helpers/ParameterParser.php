@@ -60,7 +60,7 @@ class ParameterParser
         }
 
         $encFileDataBin = null;
-        if (!empty($encFileData)) {
+        if (! empty($encFileData)) {
             if (strlen($encFileData) % 2 !== 0) {
                 throw new \InvalidArgumentException(
                     sprintf('Invalid %s parameter: must have even length', $paramNames['enc_file_data'])
@@ -154,7 +154,7 @@ class ParameterParser
         }
 
         // Remove the SDMMAC parameter suffix if present
-        $sdmmacSuffix = '&' . $sdmmacParamName . '=';
+        $sdmmacSuffix = '&'.$sdmmacParamName.'=';
         $bulkParam = str_replace($sdmmacSuffix, '', $bulkParam);
 
         // Validate hex string length is even
@@ -197,7 +197,7 @@ class ParameterParser
     /**
      * Detect encryption mode based on PICC data length.
      *
-     * @param  string  $piccData Binary PICC data
+     * @param  string  $piccData  Binary PICC data
      * @return string 'AES' or 'LRP'
      */
     private static function detectEncryptionMode(string $piccData): string
@@ -216,7 +216,7 @@ class ParameterParser
     /**
      * Interpret tamper tag status from file data.
      *
-     * @param  string  $fileData Binary file data
+     * @param  string  $fileData  Binary file data
      * @return array{status: string, color: string}|null
      */
     public static function interpretTamperStatus(string $fileData): ?array

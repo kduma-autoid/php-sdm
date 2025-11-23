@@ -26,7 +26,7 @@ class TagController extends BaseSDMController
             $result = $sdm->decryptSunMessage(
                 paramMode: \KDuma\SDM\ParamMode::SEPARATED,
                 sdmMetaReadKey: $this->getEncKey(),
-                sdmFileReadKey: fn(string $uid) => $this->getMacKey($uid),
+                sdmFileReadKey: fn (string $uid) => $this->getMacKey($uid),
                 piccEncData: $params['picc_data'],
                 sdmmac: $params['sdmmac'],
                 encFileData: $params['enc_file_data']

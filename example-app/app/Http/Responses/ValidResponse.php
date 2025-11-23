@@ -6,7 +6,6 @@ namespace App\Http\Responses;
 
 use Illuminate\Contracts\Support\Responsable;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
 class ValidResponse implements Responsable
@@ -19,8 +18,7 @@ class ValidResponse implements Responsable
     public function __construct(
         private readonly array $data,
         private readonly int $status = 200
-    ) {
-    }
+    ) {}
 
     public function toResponse($request): Response|JsonResponse
     {
