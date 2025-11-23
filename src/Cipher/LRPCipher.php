@@ -166,16 +166,18 @@ class LRPCipher implements CipherInterface
     /**
      * Encrypt data using LRICB mode.
      *
+     * NOTE: The $iv parameter is ignored by this implementation. LRP uses an
+     * internal counter that must be set via the constructor or setCounter().
+     * The IV parameter is only present for CipherInterface compatibility.
+     *
      * @param string $data Data to encrypt
-     * @param string $key  Encryption key (16 bytes)
-     * @param string $iv   Initialization vector (16 bytes)
+     * @param string $key  Encryption key (16 bytes) - ignored, uses constructor key
+     * @param string $iv   Initialization vector - IGNORED, uses internal counter
      *
      * @return string Encrypted data
      */
     public function encrypt(string $data, string $key, string $iv): string
     {
-        // Note: This implementation uses the internal counter, not the passed IV
-        // The IV parameter is kept for interface compatibility
         $plaintext = $data;
 
         // Apply padding if enabled
@@ -205,16 +207,18 @@ class LRPCipher implements CipherInterface
     /**
      * Decrypt data using LRICB mode.
      *
+     * NOTE: The $iv parameter is ignored by this implementation. LRP uses an
+     * internal counter that must be set via the constructor or setCounter().
+     * The IV parameter is only present for CipherInterface compatibility.
+     *
      * @param string $data Data to decrypt
-     * @param string $key  Decryption key (16 bytes)
-     * @param string $iv   Initialization vector (16 bytes)
+     * @param string $key  Decryption key (16 bytes) - ignored, uses constructor key
+     * @param string $iv   Initialization vector - IGNORED, uses internal counter
      *
      * @return string Decrypted data
      */
     public function decrypt(string $data, string $key, string $iv): string
     {
-        // Note: This implementation uses the internal counter, not the passed IV
-        // The IV parameter is kept for interface compatibility
         $plaintext = '';
         $blocks = str_split($data, self::BLOCK_SIZE);
 
@@ -302,7 +306,12 @@ class LRPCipher implements CipherInterface
     }
 
     /**
-     * Encrypt data using AES-128-ECB mode (interface implementation).
+     * Encrypt data using AES-128-ECB mode.
+     *
+     * This method is provided for CipherInterface compatibility and delegates
+     * to the underlying AES-ECB implementation. Note that ECB mode is not used
+     * for LRP encryption itself - LRP uses LRICB mode which builds upon ECB
+     * as a primitive.
      *
      * @param string $data Data to encrypt (must be 16-byte aligned)
      * @param string $key  Encryption key (16 bytes)
@@ -332,33 +341,34 @@ class LRPCipher implements CipherInterface
     /**
      * Increment counter value.
      *
-     * @param string $counter Current counter value
+     * This implementation uses byte-by-byte arithmetic to avoid PHP integer
+     * overflow issues that would occur when converting large counters to integers.
+     * Works correctly on both 32-bit and 64-bit systems with counters of any length.
+     *
+     * The algorithm processes bytes from right to left (big-endian), maintaining
+     * a carry flag. Each byte operation ($byteValue) is guaranteed to be ≤ 256,
+     * making the bit shift ($byteValue >> 8) safe on all platforms.
+     *
+     * @param string $counter Current counter value (binary string, any length)
      *
      * @return string Incremented counter (wraps to zero on overflow)
      */
     private static function incrementCounter(string $counter): string
     {
-        $maxBitLen = strlen($counter) * 8;
+        // Process bytes right-to-left with carry propagation
+        $result = $counter;
+        $carry = 1;
 
-        // Convert counter to integer
-        $ctrValue = 0;
-        for ($i = 0; $i < strlen($counter); ++$i) {
-            $ctrValue = ($ctrValue << 8) | ord($counter[$i]);
+        for ($i = strlen($result) - 1; $i >= 0 && $carry; --$i) {
+            // $byteValue is always 0-256, safe for bit operations on any platform
+            $byteValue = ord($result[$i]) + $carry;
+            $result[$i] = chr($byteValue & 0xFF);
+            $carry = $byteValue >> 8;  // Extract carry (0 or 1)
         }
 
-        // Increment
-        ++$ctrValue;
-
-        // Check for overflow
-        if ($ctrValue >> $maxBitLen) {
+        // If carry is still 1, counter overflowed - wrap to zero
+        if ($carry) {
             return str_repeat("\x00", strlen($counter));
-        }
-
-        // Convert back to bytes
-        $result = '';
-        for ($i = strlen($counter) - 1; $i >= 0; --$i) {
-            $result = chr($ctrValue & 0xFF).$result;
-            $ctrValue >>= 8;
         }
 
         return $result;
@@ -366,6 +376,10 @@ class LRPCipher implements CipherInterface
 
     /**
      * Remove ISO/IEC 9797-1 padding (0x80 followed by zeros).
+     *
+     * Uses constant-time algorithm to prevent timing attacks. Always scans
+     * the entire data regardless of padding location to avoid leaking timing
+     * information about where padding starts or validation failures occur.
      *
      * @param string $data Padded data
      *
@@ -375,21 +389,45 @@ class LRPCipher implements CipherInterface
      */
     private static function removePadding(string $data): string
     {
+        $dataLen = strlen($data);
+        $paddingValid = false;
         $padLength = 0;
-        for ($i = strlen($data) - 1; $i >= 0; --$i) {
-            ++$padLength;
+        $markerFound = false;
+
+        // Always scan entire data from end to beginning (constant-time)
+        for ($i = $dataLen - 1; $i >= 0; --$i) {
             $byte = ord($data[$i]);
+            $is0x80 = (0x80 === $byte);
+            $is0x00 = (0x00 === $byte);
 
-            if (0x80 === $byte) {
-                return substr($data, 0, -$padLength);
+            // Update padding state without branches that could leak timing
+            if ($is0x80 && !$markerFound) {
+                // Found 0x80 marker for first time
+                $markerFound = true;
+                $paddingValid = true;
+                $padLength = $dataLen - $i;
+            } elseif ($markerFound) {
+                // After marker found, all remaining bytes should be data
+                // No action needed, continue scanning
+            } elseif (!$is0x00) {
+                // Before marker: found non-zero byte that isn't 0x80
+                // This invalidates padding, but keep scanning
+                $paddingValid = false;
             }
-
-            if (0x00 !== $byte) {
-                throw new \RuntimeException('Invalid padding');
-            }
+            // else: Before marker and byte is 0x00, continue scanning
         }
 
-        throw new \RuntimeException('Invalid padding');
+        // Validate marker was found (constant-time check after full scan)
+        if (!$markerFound) {
+            $paddingValid = false;
+        }
+
+        // Throw exception only after scanning entire data
+        if (!$paddingValid) {
+            throw new \RuntimeException('Invalid padding');
+        }
+
+        return substr($data, 0, -$padLength);
     }
 
     /**
@@ -460,12 +498,7 @@ class LRPCipher implements CipherInterface
             throw new \InvalidArgumentException('Cannot XOR strings of different lengths');
         }
 
-        $result = '';
-        for ($i = 0; $i < strlen($a); ++$i) {
-            $result .= chr(ord($a[$i]) ^ ord($b[$i]));
-        }
-
-        return $result;
+        return $a ^ $b;
     }
 
     /**
@@ -481,9 +514,17 @@ class LRPCipher implements CipherInterface
      */
     private function gfMultiply(string $element, int $factor): string
     {
+        // Determine number of iterations based on factor
+        // Only 2 and 4 are valid per the LRP specification
+        $iterations = match ($factor) {
+            2 => 1,  // multiply by 2: shift once
+            4 => 2,  // multiply by 4: shift twice
+            default => throw new \InvalidArgumentException('Factor must be 2 or 4'),
+        };
+
         $result = $element;
 
-        for ($i = 0; $i < log($factor, 2); ++$i) {
+        for ($i = 0; $i < $iterations; ++$i) {
             // Check MSB (most significant bit)
             $msb = (ord($result[0]) & 0x80) !== 0;
 

@@ -40,6 +40,27 @@ class SDM implements SDMInterface
     private const SV1_PREFIX_ENC = "\xC3\x3C\x00\x01\x00\x80";
 
     /**
+     * LRP protocol version identifier.
+     *
+     * Used as a prefix in LRP session vector construction for both SV1 and SV2.
+     * This 4-byte sequence identifies the protocol version in LRP mode operations.
+     *
+     * @see AN12304 Section 3 - Leakage Resilient Primitive (LRP)
+     */
+    private const LRP_PROTOCOL_PREFIX = "\x00\x01\x00\x80";
+
+    /**
+     * LRP stream terminator.
+     *
+     * 2-byte trailer appended to padded LRP session vectors before CMAC calculation.
+     * This terminator is added after padding the session vector to a multiple of
+     * the block size (16 bytes).
+     *
+     * @see AN12304 Section 3 - Leakage Resilient Primitive (LRP)
+     */
+    private const LRP_STREAM_TRAILER = "\x1E\xE1";
+
+    /**
      * PICCDataTag bit mask for UID mirroring enabled flag.
      *
      * Bit 7 of PICCDataTag byte indicates if UID is included in the encrypted data.
@@ -178,13 +199,13 @@ class SDM implements SDMInterface
 
         if (EncMode::LRP === $mode) {
             // LRP mode - derive CMAC session key using SV2 with different format
-            $sv2stream = "\x00\x01\x00\x80".$piccData;
+            $sv2stream = self::LRP_PROTOCOL_PREFIX.$piccData;
 
             // Pad until (length + 2) is a multiple of block size, then add 2-byte trailer
             while ((strlen($sv2stream) + 2) % 16 !== 0) {
                 $sv2stream .= "\x00";
             }
-            $sv2stream .= "\x1E\xE1";
+            $sv2stream .= self::LRP_STREAM_TRAILER;
 
             // Derive master key using LRP CMAC
             $lrpCipher = new LRPCipher($sdmFileReadKey, 0);
@@ -194,7 +215,10 @@ class SDM implements SDMInterface
             $lrpSession = new LRPCipher($masterKey, 0);
             $macDigest = $lrpSession->cmac($inputBuf, $masterKey);
 
-            // Extract odd bytes (1, 3, 5, 7, 9, 11, 13, 15)
+            // Extract odd bytes (1, 3, 5, 7, 9, 11, 13, 15) to form 8-byte SDMMAC
+            // Note: This reduces MAC strength from 128 bits to 64 bits as specified
+            // by the NTAG 424 DNA protocol. The odd-byte extraction is part of the
+            // AN12196 specification for SUN message authentication.
             $result = '';
             for ($i = 1; $i < 16; $i += 2) {
                 $result .= $macDigest[$i];
@@ -213,7 +237,10 @@ class SDM implements SDMInterface
         $c2 = $this->cipher->cmac($sv2stream, $sdmFileReadKey);
         $macDigest = $this->cipher->cmac($inputBuf, $c2);
 
-        // Extract odd bytes (1, 3, 5, 7, 9, 11, 13, 15)
+        // Extract odd bytes (1, 3, 5, 7, 9, 11, 13, 15) to form 8-byte SDMMAC
+        // Note: This reduces MAC strength from 128 bits to 64 bits as specified
+        // by the NTAG 424 DNA protocol. The odd-byte extraction is part of the
+        // AN12196 specification for SUN message authentication.
         $result = '';
         for ($i = 1; $i < 16; $i += 2) {
             $result .= $macDigest[$i];
@@ -246,13 +273,13 @@ class SDM implements SDMInterface
 
         if (EncMode::LRP === $mode) {
             // LRP mode - derive encryption session key using SV1 with different format
-            $sv1stream = "\x00\x01\x00\x80".$piccData;
+            $sv1stream = self::LRP_PROTOCOL_PREFIX.$piccData;
 
             // Pad until (length + 2) is a multiple of block size, then add 2-byte trailer
             while ((strlen($sv1stream) + 2) % 16 !== 0) {
                 $sv1stream .= "\x00";
             }
-            $sv1stream .= "\x1E\xE1";
+            $sv1stream .= self::LRP_STREAM_TRAILER;
 
             // Derive master key using LRP CMAC
             $lrpCipher = new LRPCipher($sdmFileReadKey, 0);
@@ -337,6 +364,7 @@ class SDM implements SDMInterface
         }
 
         // Convert 3-byte read counter to integer (big-endian)
+        // Safe on both 32-bit and 64-bit: max value is 0xFFFFFF = 16,777,215
         $unpacked = unpack('N', "\x00".$readCtr);
         if (false === $unpacked) {
             throw new ValidationException('Failed to unpack read counter');
@@ -457,11 +485,13 @@ class SDM implements SDMInterface
             if ($sdmReadCtrEn) {
                 $readCtr = substr($plaintext, $offset, 3);
                 $dataStream .= $readCtr;
+                // Convert 3-byte read counter to integer (little-endian)
+                // Safe on both 32-bit and 64-bit: max value is 0xFFFFFF = 16,777,215
                 $unpacked = unpack('V', $readCtr."\x00");
                 if (false === $unpacked) {
                     throw new DecryptionException('Failed to unpack read counter');
                 }
-                $readCtrNum = $unpacked[1]; // little-endian 3-byte to int
+                $readCtrNum = $unpacked[1];
             }
 
             if (null === $uid) {
