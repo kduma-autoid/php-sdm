@@ -1,18 +1,18 @@
-# PHP SDM - NTAG DNA 424 Implementation
+# PHP SDM - NTAG 424 DNA Implementation
 
-PHP implementation for NTAG DNA 424 Secure Dynamic Messaging (SDM).
+A PHP library for decrypting and validating NTAG 424 DNA Secure Dynamic Messaging (SDM) data.
+
+[![PHP Version](https://img.shields.io/badge/php-%5E8.3-blue)](https://www.php.net/)
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 ## Features
 
-- NTAG DNA 424 SDM message decryption
-- CMAC validation
-- AES encryption/decryption
-- PICC data parsing
-- SUN message handling
-
-## Requirements
-
-- PHP 8.3 or higher
+- **NTAG 424 DNA SDM** support with AES and LRP encryption modes
+- **CMAC validation** for message authentication
+- **Key derivation** with UID diversification (NIST SP 800-108)
+- **Plain and encrypted SUN messages**
+- **Tamper detection** support for TagTamper variant
+- **Example Laravel app** included
 
 ## Installation
 
@@ -20,68 +20,82 @@ PHP implementation for NTAG DNA 424 Secure Dynamic Messaging (SDM).
 composer require kduma/php-sdm
 ```
 
-## Usage
+## Quick Start
 
 ```php
 use KDuma\SDM\SDM;
+use KDuma\SDM\KeyDerivation;
 
 // Initialize with your keys
-$sdm = new SDM(
-    encKey: 'your_encryption_key',
-    macKey: 'your_mac_key'
-);
+$masterKey = hex2bin('your_master_key_here');
+$kdf = new KeyDerivation();
+
+// Derive encryption and MAC keys
+$encKey = $kdf->deriveUndiversifiedKey($masterKey, 1);
+$macKey = $kdf->deriveTagKey($masterKey, $uid, 2);
+
+$sdm = new SDM($encKey, $macKey);
 
 // Decrypt SDM message
-$result = $sdm->decrypt($encData, $encFileData, $cmac);
+$result = $sdm->decrypt(
+    encData: hex2bin($piccData),
+    encFileData: hex2bin($encFileData),
+    cmac: hex2bin($cmac)
+);
 
-// Validate CMAC
-$isValid = $sdm->validate($data, $cmac);
+// Or validate plain SUN message
+$isValid = $sdm->validate(
+    data: hex2bin($uid . $readCtr),
+    cmac: hex2bin($cmac)
+);
 ```
+
+## Documentation
+
+- **[Documentation](DOCUMENTATION.md)** - Detailed usage guide and examples
+- **[API Reference](API.md)** - Complete API documentation
+- **[Example App](example-app/README.md)** - Laravel example application guide
+
+## Requirements
+
+- PHP 8.3 or higher
+- OpenSSL extension (for AES operations)
+
+## Example Application
+
+The library includes a full Laravel application demonstrating real-world usage:
+
+```bash
+cd example-app
+composer install
+php artisan serve
+```
+
+Visit `http://localhost:8000` for a working demo with WebNFC support.
+
+See [example-app/README.md](example-app/README.md) for details.
 
 ## Development
 
-### Install dependencies
-
 ```bash
+# Install dependencies
 composer install
-```
 
-### Run tests
-
-```bash
+# Run tests
 composer test
-```
 
-### Run static analysis
-
-```bash
+# Run static analysis
 composer phpstan
-```
 
-### Fix code style
-
-```bash
+# Fix code style
 composer cs-fix
 ```
 
-## Structure
+## References
 
-```
-src/
-├── Cipher/          # Cryptographic operations
-│   ├── CipherInterface.php
-│   └── AESCipher.php
-├── Exceptions/      # Custom exceptions
-│   ├── SDMException.php
-│   ├── DecryptionException.php
-│   └── ValidationException.php
-├── PICC/           # PICC data structures
-│   └── PICCData.php
-├── SUN/            # SUN message handling
-│   └── SUNMessage.php
-├── SDMInterface.php
-└── SDM.php
-```
+- [NXP AN12196](https://www.nxp.com/docs/en/application-note/AN12196.pdf) - NTAG 424 DNA and TagTamper Features
+- [NXP AN12304](https://www.nxp.com/docs/en/application-note/AN12304.pdf) - Leakage Resilient Primitive (LRP)
+- [NIST SP 800-108](https://csrc.nist.gov/publications/detail/sp/800-108/rev-1/final) - Key Derivation Functions
 
 ## License
 
