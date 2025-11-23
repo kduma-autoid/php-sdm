@@ -56,7 +56,7 @@
     @endif
 
     <div class="mt-4">
-        <a href="{{ request()->fullUrlWithQuery(['output' => 'json']) }}" class="btn btn-primary">
+        <a href="{{ '/api' . request()->getRequestUri() }}" class="btn btn-primary">
             View as JSON
         </a>
 
