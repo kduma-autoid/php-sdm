@@ -74,26 +74,35 @@ class KeyDerivation
     /**
      * Derive an undiversified key from a master key.
      *
-     * @param string $masterKey The master key (binary, 16 bytes)
+     * @param string $masterKey The master key (binary, 16-32 bytes)
      * @param int    $keyNumber The key number (must be 1)
      *
      * @return string The derived key (binary, 16 bytes)
      */
     public function deriveUndiversifiedKey(string $masterKey, int $keyNumber): string
     {
-        // Validate master key length
-        if (16 !== strlen($masterKey)) {
-            throw new \InvalidArgumentException(sprintf('Master key must be exactly 16 bytes, got %d bytes', strlen($masterKey)));
-        }
+        // IMPORTANT: Validate parameters BEFORE factory key check to ensure
+        // invalid inputs are rejected even when using factory keys
 
-        // Check for factory key (all zeros)
-        if ($masterKey === str_repeat("\x00", 16)) {
-            return str_repeat("\x00", 16);
-        }
-
-        // Only key number 1 is supported for undiversified keys
+        // Validate key number
         if (1 !== $keyNumber) {
             throw new \InvalidArgumentException('Only key number 1 is supported for undiversified keys');
+        }
+
+        // Validate master key length: 16 bytes (AES-128) to 32 bytes (AES-256)
+        $keyLength = strlen($masterKey);
+        if ($keyLength < 16 || $keyLength > 32) {
+            throw new \InvalidArgumentException(
+                sprintf(
+                    'Master key must be 16-32 bytes (got %d bytes). Keys shorter than 16 bytes are cryptographically weak, and keys longer than 32 bytes are not supported by the key derivation algorithm.',
+                    $keyLength,
+                ),
+            );
+        }
+
+        // Check for factory key (all zeros) - exactly 16 bytes of zeros
+        if ($masterKey === str_repeat("\x00", 16)) {
+            return str_repeat("\x00", 16);
         }
 
         // Derive key using HMAC-SHA256 with DIV_CONST1
@@ -112,7 +121,7 @@ class KeyDerivation
     /**
      * Derive a tag-specific (UID-diversified) key from a master key.
      *
-     * @param string $masterKey The master key (binary, 16 bytes)
+     * @param string $masterKey The master key (binary, 16-32 bytes)
      * @param string $uid       The UID of the tag (binary, 7 bytes)
      * @param int    $keyNumber The key number (1 or 2)
      *
@@ -120,10 +129,8 @@ class KeyDerivation
      */
     public function deriveTagKey(string $masterKey, string $uid, int $keyNumber): string
     {
-        // Validate master key length
-        if (16 !== strlen($masterKey)) {
-            throw new \InvalidArgumentException(sprintf('Master key must be exactly 16 bytes, got %d bytes', strlen($masterKey)));
-        }
+        // IMPORTANT: Validate parameters BEFORE factory key check to ensure
+        // invalid inputs are rejected even when using factory keys
 
         // Validate UID length
         if (7 !== strlen($uid)) {
@@ -135,7 +142,18 @@ class KeyDerivation
             throw new \InvalidArgumentException(sprintf('Key number must be 1 or 2, got %d', $keyNumber));
         }
 
-        // Check for factory key (all zeros)
+        // Validate master key length: 16 bytes (AES-128) to 32 bytes (AES-256)
+        $keyLength = strlen($masterKey);
+        if ($keyLength < 16 || $keyLength > 32) {
+            throw new \InvalidArgumentException(
+                sprintf(
+                    'Master key must be 16-32 bytes (got %d bytes). Keys shorter than 16 bytes are cryptographically weak, and keys longer than 32 bytes are not supported by the key derivation algorithm.',
+                    $keyLength,
+                ),
+            );
+        }
+
+        // Check for factory key (all zeros) - exactly 16 bytes of zeros
         if ($masterKey === str_repeat("\x00", 16)) {
             return str_repeat("\x00", 16);
         }

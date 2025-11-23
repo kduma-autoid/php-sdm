@@ -40,4 +40,20 @@ interface CipherInterface
      * @return string CMAC value
      */
     public function cmac(string $data, string $key): string;
+
+    /**
+     * Encrypt data using AES-128-ECB mode without padding.
+     *
+     * ECB (Electronic Codebook) mode encrypts each block independently without
+     * an initialization vector. This makes it deterministic but less secure for
+     * general use. It should only be used for specific cryptographic operations.
+     *
+     * @param string $data The plaintext data to encrypt (must be 16-byte aligned)
+     * @param string $key  The encryption key (16 bytes for AES-128)
+     *
+     * @return string The encrypted ciphertext (same length as input)
+     *
+     * @throws \RuntimeException if encryption fails
+     */
+    public function encryptECB(string $data, string $key): string;
 }

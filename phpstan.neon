@@ -5,3 +5,25 @@ parameters:
         - tests
     excludePaths:
         - vendor
+    ignoreErrors:
+        # hex2bin() returns string|false, but in tests we use hardcoded valid hex strings
+        # that will never return false. Rather than adding assertNotFalse() after 299 uses,
+        # we accept this specific type mismatch in test files only.
+        # Alternative solutions considered:
+        # - Add assertNotFalse() everywhere (too verbose, 299 occurrences)
+        # - Create test helper method (requires changing all test files)
+        # - Use @phpstan-ignore comments (requires 299 inline comments)
+        # Scoped to tests/Unit/ directory only to avoid suppressing errors in src/
+        -
+            message: '#Parameter .* expects string, string\|false given#'
+            paths:
+                - tests/Unit/
+        -
+            message: '#expects string\|null, string\|false given#'
+            paths:
+                - tests/Unit/
+        # Unreachable statements after markTestSkipped() in LRP tests
+        # These tests are intentionally skipped but kept for documentation and future LRP support
+        -
+            message: '#Unreachable statement - code above always terminates#'
+            path: tests/Unit/SDMProtocolTest.php
