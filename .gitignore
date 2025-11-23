@@ -11,3 +11,4 @@ coverage/
 *~
 *.bak
 .DS_Store
+/example-app/.vite
