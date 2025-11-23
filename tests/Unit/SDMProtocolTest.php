@@ -9,6 +9,7 @@ use KDuma\SDM\Exceptions\ValidationException;
 use KDuma\SDM\KeyDerivation;
 use KDuma\SDM\ParamMode;
 use KDuma\SDM\SDM;
+use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -19,9 +20,8 @@ use PHPUnit\Framework\TestCase;
  * https://github.com/nfc-developer/sdm-backend/blob/master/tests/test_libsdm.py
  *
  * @internal
- *
- * @coversNothing
  */
+#[CoversNothing]
 class SDMProtocolTest extends TestCase
 {
     /**

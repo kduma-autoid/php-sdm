@@ -397,8 +397,8 @@ class LRPCipher implements CipherInterface
         // Always scan entire data from end to beginning (constant-time)
         for ($i = $dataLen - 1; $i >= 0; --$i) {
             $byte = ord($data[$i]);
-            $is0x80 = ($byte === 0x80);
-            $is0x00 = ($byte === 0x00);
+            $is0x80 = (0x80 === $byte);
+            $is0x00 = (0x00 === $byte);
 
             // Update padding state without branches that could leak timing
             if ($is0x80 && !$markerFound) {

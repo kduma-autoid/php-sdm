@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace KDuma\SDM\Tests\Unit\Cipher;
 
 use KDuma\SDM\Cipher\LRPCipher;
+use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -19,9 +20,8 @@ use PHPUnit\Framework\TestCase;
  * From: https://github.com/nfc-developer/sdm-backend
  *
  * @internal
- *
- * @coversNothing
  */
+#[CoversNothing]
 class LRPTest extends TestCase
 {
     /**
