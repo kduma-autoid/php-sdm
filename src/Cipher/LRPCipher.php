@@ -68,7 +68,7 @@ class LRPCipher implements CipherInterface
      *
      * @param string $key        Secret key (16 bytes)
      * @param int    $updateMode Updated key index to use (0-3)
-     * @param string $counter    Initial counter/IV value (16 bytes, default: all zeros)
+     * @param string $counter    Initial counter/IV value (default: 16 zero bytes, variable length supported)
      * @param bool   $usePadding Whether to use padding (default: true)
      */
     public function __construct(
@@ -86,6 +86,11 @@ class LRPCipher implements CipherInterface
         }
 
         $this->counter = $counter ?? str_repeat("\x00", 16);
+
+        if (0 === strlen($this->counter)) {
+            throw new \InvalidArgumentException('Counter must not be empty');
+        }
+
         $this->usePadding = $usePadding;
 
         // Generate plaintexts and updated keys
@@ -288,7 +293,7 @@ class LRPCipher implements CipherInterface
     /**
      * Get the current counter value.
      *
-     * @return string Current counter (16 bytes)
+     * @return string Current counter (variable length)
      */
     public function getCounter(): string
     {
@@ -298,10 +303,16 @@ class LRPCipher implements CipherInterface
     /**
      * Set the counter value.
      *
-     * @param string $counter New counter value (16 bytes)
+     * @param string $counter New counter value (variable length, must not be empty)
+     *
+     * @throws \InvalidArgumentException if counter is empty
      */
     public function setCounter(string $counter): void
     {
+        if (0 === strlen($counter)) {
+            throw new \InvalidArgumentException('Counter must not be empty');
+        }
+
         $this->counter = $counter;
     }
 

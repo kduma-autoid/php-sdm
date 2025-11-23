@@ -473,4 +473,52 @@ class LRPTest extends TestCase
 
         $method->invoke($cipher, $element, 3);
     }
+
+    /**
+     * Test constructor with empty counter.
+     */
+    public function testConstructorEmptyCounter(): void
+    {
+        $key = hex2bin('00000000000000000000000000000000');
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Counter must not be empty');
+
+        new LRPCipher($key, 0, '');
+    }
+
+    /**
+     * Test setCounter with empty value.
+     */
+    public function testSetCounterEmpty(): void
+    {
+        $key = hex2bin('00000000000000000000000000000000');
+        $cipher = new LRPCipher($key, 0);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Counter must not be empty');
+
+        $cipher->setCounter('');
+    }
+
+    /**
+     * Test variable-length counters (6 and 8 bytes as used in SDM).
+     */
+    public function testVariableLengthCounters(): void
+    {
+        $key = hex2bin('00000000000000000000000000000000');
+
+        // 6-byte counter (as used in SDM for read counter)
+        $cipher6 = new LRPCipher($key, 0, "\x00\x00\x00\x00\x00\x00");
+        $this->assertSame(6, strlen($cipher6->getCounter()));
+
+        // 8-byte counter (as used in SDM for PICC random)
+        $cipher8 = new LRPCipher($key, 0, str_repeat("\x00", 8));
+        $this->assertSame(8, strlen($cipher8->getCounter()));
+
+        // Variable-length counter via setCounter
+        $cipher = new LRPCipher($key, 0);
+        $cipher->setCounter("\x01\x02\x03\x04");
+        $this->assertSame(4, strlen($cipher->getCounter()));
+    }
 }
