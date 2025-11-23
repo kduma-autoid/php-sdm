@@ -7,7 +7,55 @@ namespace KDuma\SDM;
 use KDuma\SDM\Cipher\AESCipher;
 
 /**
- * Key derivation functions for NTAG DNA 424 SDM.
+ * Key derivation functions for NTAG 424 DNA Secure Dynamic Messaging (SDM).
+ *
+ * This class implements the NIST SP 800-108 key derivation functions used by
+ * NTAG 424 DNA NFC tags for deriving session keys from master keys. The derivation
+ * process uses HMAC-SHA256 and AES-CMAC as specified in NXP Application Note AN12196.
+ *
+ * ## Key Derivation Methods
+ *
+ * The class provides two types of key derivation:
+ *
+ * 1. **Undiversified Keys**: Derived only from the master key, used when UID
+ *    diversification is not required. Only key number 1 is supported.
+ *
+ * 2. **UID-Diversified Keys**: Derived from both the master key and the tag's
+ *    unique identifier (UID). This ensures each tag has unique session keys,
+ *    preventing key reuse across different tags even with the same master key.
+ *
+ * ## UID Diversification
+ *
+ * UID diversification binds derived keys to a specific tag's hardware UID (7 bytes).
+ * This provides additional security by ensuring that:
+ * - Each tag produces different session keys from the same master key
+ * - Keys cannot be transferred between tags
+ * - Compromising one tag's keys doesn't affect other tags
+ *
+ * ## Usage Example
+ *
+ * ```php
+ * use KDuma\SDM\KeyDerivation;
+ *
+ * $kdf = new KeyDerivation();
+ *
+ * // Derive an undiversified key (key number 1 only)
+ * $masterKey = hex2bin('C9EB67DF090AFF47C3B19A2516680B9D');
+ * $sessionKey = $kdf->deriveUndiversifiedKey($masterKey, 1);
+ *
+ * // Derive a UID-diversified key for a specific tag
+ * $uid = hex2bin('04E12AB3CD5E80'); // Tag's 7-byte UID
+ * $tagKey = $kdf->deriveTagKey($masterKey, $uid, 1);
+ * ```
+ *
+ * ## Specification References
+ *
+ * - NXP AN12196: "NTAG 424 DNA and NTAG 424 DNA TagTamper features and hints"
+ * - NIST SP 800-108: "Recommendation for Key Derivation Using Pseudorandom Functions"
+ * - NIST SP 800-38B: "Recommendation for Block Cipher Modes of Operation: The CMAC Mode for Authentication"
+ *
+ * @see https://www.nxp.com/docs/en/application-note/AN12196.pdf NXP AN12196
+ * @see https://csrc.nist.gov/publications/detail/sp/800-108/rev-1/final NIST SP 800-108
  */
 class KeyDerivation
 {

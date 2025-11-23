@@ -129,17 +129,21 @@ class AESCipher implements CipherInterface
 
     /**
      * XOR two strings of equal length.
+     *
+     * @throws \InvalidArgumentException if strings have different lengths
      */
     private function xorStrings(string $a, string $b): string
     {
-        $length = strlen($a);
-        $result = '';
+        $lengthA = strlen($a);
+        $lengthB = strlen($b);
 
-        for ($i = 0; $i < $length; ++$i) {
-            $result .= chr(ord($a[$i]) ^ ord($b[$i]));
+        if ($lengthA !== $lengthB) {
+            throw new \InvalidArgumentException(
+                sprintf('Cannot XOR strings of different lengths: %d vs %d bytes', $lengthA, $lengthB)
+            );
         }
 
-        return $result;
+        return $a ^ $b;
     }
 
     /**
