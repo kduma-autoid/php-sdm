@@ -236,8 +236,6 @@ class SDMProtocolTest extends TestCase
      */
     public function testSdmLrp1(): void
     {
-        $this->markTestIncomplete('LRP cipher implementation needs cryptographic debugging');
-
         $sdm = new SDM(
             encKey: hex2bin('00000000000000000000000000000000'),
             macKey: hex2bin('00000000000000000000000000000000'),
@@ -264,8 +262,6 @@ class SDMProtocolTest extends TestCase
      */
     public function testSdmLrp2(): void
     {
-        $this->markTestIncomplete('LRP cipher implementation needs cryptographic debugging');
-
         $sdm = new SDM(
             encKey: hex2bin('00000000000000000000000000000000'),
             macKey: hex2bin('00000000000000000000000000000000'),

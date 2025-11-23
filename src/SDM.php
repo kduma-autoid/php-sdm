@@ -385,8 +385,8 @@ class SDM implements SDMInterface
             $piccRandom = substr($piccEncData, 0, 8);
             $encryptedPiccData = substr($piccEncData, 8);
 
-            // Use LRP to decrypt PICC data
-            $lrpCipher = new LRPCipher($sdmMetaReadKey, 0, $piccRandom.str_repeat("\x00", 8), true);
+            // Use LRP to decrypt PICC data (no padding for PICC data)
+            $lrpCipher = new LRPCipher($sdmMetaReadKey, 0, $piccRandom.str_repeat("\x00", 8), false);
             $plaintext = $lrpCipher->decrypt($encryptedPiccData, $sdmMetaReadKey, $piccRandom.str_repeat("\x00", 8));
         } else {
             // AES mode - decrypt using CBC with zero IV
