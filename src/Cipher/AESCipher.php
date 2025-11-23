@@ -9,6 +9,20 @@ namespace KDuma\SDM\Cipher;
  */
 class AESCipher implements CipherInterface
 {
+    /**
+     * Encrypt data using AES-128-CBC mode without padding.
+     *
+     * Uses OpenSSL's AES-128-CBC implementation with raw output (no base64 encoding)
+     * and no automatic padding. The data length must be a multiple of 16 bytes.
+     *
+     * @param string $data The plaintext data to encrypt (must be 16-byte aligned)
+     * @param string $key  The encryption key (16 bytes for AES-128)
+     * @param string $iv   The initialization vector (16 bytes)
+     *
+     * @return string The encrypted ciphertext (same length as input)
+     *
+     * @throws \RuntimeException if encryption fails
+     */
     public function encrypt(string $data, string $key, string $iv): string
     {
         $encrypted = openssl_encrypt($data, 'AES-128-CBC', $key, OPENSSL_RAW_DATA | OPENSSL_NO_PADDING, $iv);
@@ -20,6 +34,20 @@ class AESCipher implements CipherInterface
         return $encrypted;
     }
 
+    /**
+     * Decrypt data using AES-128-CBC mode without padding.
+     *
+     * Uses OpenSSL's AES-128-CBC implementation with raw input (no base64 decoding)
+     * and no automatic padding removal. The data length must be a multiple of 16 bytes.
+     *
+     * @param string $data The ciphertext data to decrypt (must be 16-byte aligned)
+     * @param string $key  The decryption key (16 bytes for AES-128)
+     * @param string $iv   The initialization vector (16 bytes)
+     *
+     * @return string The decrypted plaintext (same length as input)
+     *
+     * @throws \RuntimeException if decryption fails
+     */
     public function decrypt(string $data, string $key, string $iv): string
     {
         $decrypted = openssl_decrypt($data, 'AES-128-CBC', $key, OPENSSL_RAW_DATA | OPENSSL_NO_PADDING, $iv);
@@ -31,6 +59,23 @@ class AESCipher implements CipherInterface
         return $decrypted;
     }
 
+    /**
+     * Encrypt data using AES-128-ECB mode without padding.
+     *
+     * Uses OpenSSL's AES-128-ECB (Electronic Codebook) implementation with raw output
+     * and no automatic padding. ECB mode encrypts each block independently without an
+     * initialization vector, making it deterministic but less secure for general use.
+     *
+     * This method is used in the SDM protocol for specific operations like generating
+     * the initialization vector for CBC mode encryption.
+     *
+     * @param string $data The plaintext data to encrypt (must be 16-byte aligned)
+     * @param string $key  The encryption key (16 bytes for AES-128)
+     *
+     * @return string The encrypted ciphertext (same length as input)
+     *
+     * @throws \RuntimeException if encryption fails
+     */
     public function encryptECB(string $data, string $key): string
     {
         $encrypted = openssl_encrypt($data, 'AES-128-ECB', $key, OPENSSL_RAW_DATA | OPENSSL_NO_PADDING);
@@ -42,6 +87,21 @@ class AESCipher implements CipherInterface
         return $encrypted;
     }
 
+    /**
+     * Generate AES-CMAC (Cipher-based Message Authentication Code).
+     *
+     * Implements the NIST SP 800-38B CMAC algorithm using AES-128.
+     * CMAC provides message authentication and integrity verification.
+     *
+     * @param string $data The message data to authenticate (any length)
+     * @param string $key  The MAC key (16 bytes for AES-128)
+     *
+     * @return string The 16-byte CMAC tag
+     *
+     * @throws \RuntimeException if CMAC generation fails
+     *
+     * @see https://csrc.nist.gov/publications/detail/sp/800-38b/final NIST SP 800-38B
+     */
     public function cmac(string $data, string $key): string
     {
         $blockSize = 16; // AES block size in bytes
