@@ -54,7 +54,8 @@ return [
     |--------------------------------------------------------------------------
     |
     | When enabled, this will enforce LRP encryption mode and reject AES requests.
-    | Note: LRP mode is not yet implemented in the php-sdm library.
+    | LRP (Leakage Resilient Primitive) provides enhanced security against
+    | side-channel attacks compared to standard AES encryption.
     |
     */
 

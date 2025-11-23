@@ -22,8 +22,3 @@ parameters:
             message: '#expects string\|null, string\|false given#'
             paths:
                 - tests/Unit/
-        # Unreachable statements after markTestSkipped() in LRP tests
-        # These tests are intentionally skipped but kept for documentation and future LRP support
-        -
-            message: '#Unreachable statement - code above always terminates#'
-            path: tests/Unit/SDMProtocolTest.php

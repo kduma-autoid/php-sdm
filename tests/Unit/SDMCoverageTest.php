@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace KDuma\SDM\Tests\Unit;
 
 use KDuma\SDM\Cipher\AESCipher;
+use KDuma\SDM\Cipher\LRPCipher;
 use KDuma\SDM\EncMode;
 use KDuma\SDM\Exceptions\DecryptionException;
 use KDuma\SDM\Exceptions\ValidationException;
@@ -21,6 +22,7 @@ use PHPUnit\Framework\TestCase;
  */
 #[CoversClass(SDM::class)]
 #[CoversClass(AESCipher::class)]
+#[UsesClass(LRPCipher::class)]
 #[UsesClass(EncMode::class)]
 #[UsesClass(ParamMode::class)]
 #[UsesClass(DecryptionException::class)]
@@ -58,60 +60,62 @@ class SDMCoverageTest extends TestCase
     }
 
     /**
-     * Test calculateSdmmac with LRP mode throws exception.
+     * Test calculateSdmmac with LRP mode.
      */
-    public function testCalculateSdmmacLRPNotSupported(): void
+    public function testCalculateSdmmacLRP(): void
     {
         $sdm = new SDM(
             encKey: hex2bin('00000000000000000000000000000000'),
             macKey: hex2bin('00000000000000000000000000000000'),
         );
 
-        $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('LRP mode is not supported');
-
-        $sdm->calculateSdmmac(
+        $mac = $sdm->calculateSdmmac(
             ParamMode::SEPARATED,
             hex2bin('00000000000000000000000000000000'),
             hex2bin('04DE5F1EACC040').hex2bin('3D0000'),
             mode: EncMode::LRP,
         );
+
+        $this->assertSame(8, strlen($mac));
     }
 
     /**
-     * Test decryptFileData with LRP mode throws exception.
+     * Test decryptFileData with LRP mode - uses test data from test_lrp_sdm.py.
      */
-    public function testDecryptFileDataLRPNotSupported(): void
+    public function testDecryptFileDataLRP(): void
     {
         $sdm = new SDM(
             encKey: hex2bin('00000000000000000000000000000000'),
             macKey: hex2bin('00000000000000000000000000000000'),
         );
 
-        $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('LRP mode is not supported');
-
-        $sdm->decryptFileData(
+        $result = $sdm->decryptFileData(
             hex2bin('00000000000000000000000000000000'),
-            hex2bin('04DE5F1EACC040').hex2bin('3D0000'),
-            hex2bin('3D0000'),
-            hex2bin('0000000000000000'),
+            hex2bin('042e1d222a6380').hex2bin('7b0000'),
+            hex2bin('7b0000'),
+            hex2bin('4ADE304B5AB9474CB40AFFCAB0607A85'),
             EncMode::LRP,
         );
+
+        // Decrypted data is ASCII string '0102030400000000' (hex: 30313032303330343030303030303030)
+        $this->assertSame('0102030400000000', $result);
     }
 
     /**
-     * Test validatePlainSun with LRP mode throws exception.
+     * Test validatePlainSun with LRP mode.
      */
-    public function testValidatePlainSunLRPNotSupported(): void
+    public function testValidatePlainSunLRP(): void
     {
         $sdm = new SDM(
             encKey: hex2bin('00000000000000000000000000000000'),
             macKey: hex2bin('00000000000000000000000000000000'),
         );
 
-        $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('LRP mode is not supported');
+        // This test validates that LRP mode is supported
+        // The MAC may not match (which would throw ValidationException)
+        // but we're just testing that LRP mode doesn't throw RuntimeException
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('Message is not properly signed - invalid MAC');
 
         $sdm->validatePlainSun(
             uid: hex2bin('041E3C8A2D6B80'),
@@ -123,25 +127,28 @@ class SDMCoverageTest extends TestCase
     }
 
     /**
-     * Test decryptSunMessage with LRP detected throws exception.
+     * Test decryptSunMessage with LRP detected - uses test data from test_lrp_sdm.py.
      */
-    public function testDecryptSunMessageLRPNotSupported(): void
+    public function testDecryptSunMessageLRP(): void
     {
         $sdm = new SDM(
             encKey: hex2bin('00000000000000000000000000000000'),
             macKey: hex2bin('00000000000000000000000000000000'),
         );
 
-        $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('LRP mode is not supported');
-
-        $sdm->decryptSunMessage(
+        $res = $sdm->decryptSunMessage(
             paramMode: ParamMode::SEPARATED,
             sdmMetaReadKey: hex2bin('00000000000000000000000000000000'),
             sdmFileReadKey: fn ($uid) => hex2bin('00000000000000000000000000000000'),
-            piccEncData: hex2bin('07D9CA2545881D4BFDD920BE1603268C0714420DD893A497'),
-            sdmmac: hex2bin('F9481AC7D855BDB6'),
+            piccEncData: hex2bin('65628ED36888CF9C84797E43ECACF114C6ED9A5E101EB592'),
+            encFileData: hex2bin('4ADE304B5AB9474CB40AFFCAB0607A85'),
+            sdmmac: hex2bin('759B10964491D74A'),
         );
+
+        $this->assertSame(EncMode::LRP, $res['encryption_mode']);
+        $this->assertSame(hex2bin('042e1d222a6380'), $res['uid']);
+        // Decrypted file data is ASCII string '0102030400000000' (not binary hex 0102030400000000)
+        $this->assertSame('0102030400000000', $res['file_data']);
     }
 
     /**

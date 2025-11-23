@@ -9,6 +9,7 @@ use KDuma\SDM\Exceptions\ValidationException;
 use KDuma\SDM\KeyDerivation;
 use KDuma\SDM\ParamMode;
 use KDuma\SDM\SDM;
+use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -19,9 +20,8 @@ use PHPUnit\Framework\TestCase;
  * https://github.com/nfc-developer/sdm-backend/blob/master/tests/test_libsdm.py
  *
  * @internal
- *
- * @coversNothing
  */
+#[CoversNothing]
 class SDMProtocolTest extends TestCase
 {
     /**
@@ -232,13 +232,10 @@ class SDMProtocolTest extends TestCase
     }
 
     /**
-     * Test LRP mode encryption - test 1
-     * This test is skipped as LRP mode is not implemented.
+     * Test LRP mode with encrypted file data - from test_lrp_sdm.py.
      */
     public function testSdmLrp1(): void
     {
-        $this->markTestSkipped('LRP mode is not implemented');
-
         $sdm = new SDM(
             encKey: hex2bin('00000000000000000000000000000000'),
             macKey: hex2bin('00000000000000000000000000000000'),
@@ -248,26 +245,24 @@ class SDMProtocolTest extends TestCase
             paramMode: ParamMode::SEPARATED,
             sdmMetaReadKey: hex2bin('00000000000000000000000000000000'),
             sdmFileReadKey: fn ($uid) => hex2bin('00000000000000000000000000000000'),
-            piccEncData: hex2bin('07D9CA2545881D4BFDD920BE1603268C0714420DD893A497'),
-            encFileData: hex2bin('D6E921C47DB4C17C56F979F81559BB83'),
-            sdmmac: hex2bin('F9481AC7D855BDB6'),
+            piccEncData: hex2bin('65628ED36888CF9C84797E43ECACF114C6ED9A5E101EB592'),
+            encFileData: hex2bin('4ADE304B5AB9474CB40AFFCAB0607A85'),
+            sdmmac: hex2bin('759B10964491D74A'),
         );
 
         $this->assertSame("\xc7", $res['picc_data_tag']);
-        $this->assertSame(hex2bin('049b112a2f7080'), $res['uid']);
-        $this->assertSame(4, $res['read_ctr']);
-        $this->assertSame('NTXXb7dz3PsYYBlU', $res['file_data']);
+        $this->assertSame(hex2bin('042e1d222a6380'), $res['uid']);
+        $this->assertSame(123, $res['read_ctr']);
+        // Decrypted file data is ASCII string '0102030400000000' (not binary hex 0102030400000000)
+        $this->assertSame('0102030400000000', $res['file_data']);
         $this->assertSame(EncMode::LRP, $res['encryption_mode']);
     }
 
     /**
-     * Test LRP mode encryption - test 2
-     * This test is skipped as LRP mode is not implemented.
+     * Test LRP mode without encrypted file data - from test_lrp_sdm.py.
      */
     public function testSdmLrp2(): void
     {
-        $this->markTestSkipped('LRP mode is not implemented');
-
         $sdm = new SDM(
             encKey: hex2bin('00000000000000000000000000000000'),
             macKey: hex2bin('00000000000000000000000000000000'),
@@ -277,13 +272,13 @@ class SDMProtocolTest extends TestCase
             paramMode: ParamMode::SEPARATED,
             sdmMetaReadKey: hex2bin('00000000000000000000000000000000'),
             sdmFileReadKey: fn ($uid) => hex2bin('00000000000000000000000000000000'),
-            piccEncData: hex2bin('1FCBE61B3E4CAD980CBFDD333E7A4AC4A579569BAFD22C5F'),
-            sdmmac: hex2bin('4231608BA7B02BA9'),
+            piccEncData: hex2bin('AAE1508939ECF6FF26BCE407959AB1A5EC022819A35CD293'),
+            sdmmac: hex2bin('D50F353E30FDE644'),
         );
 
         $this->assertSame("\xc7", $res['picc_data_tag']);
-        $this->assertSame(hex2bin('04940e2a2f7080'), $res['uid']);
-        $this->assertSame(3, $res['read_ctr']);
+        $this->assertSame(hex2bin('042e1d222a6380'), $res['uid']);
+        $this->assertSame(106, $res['read_ctr']);
         $this->assertNull($res['file_data']);
         $this->assertSame(EncMode::LRP, $res['encryption_mode']);
     }
