@@ -81,7 +81,8 @@ class KeyDerivation
      */
     public function deriveUndiversifiedKey(string $masterKey, int $keyNumber): string
     {
-        // Only key number 1 is supported for undiversified keys
+        // IMPORTANT: Validate key number BEFORE factory key check to ensure
+        // invalid key numbers are rejected even when using factory keys
         if (1 !== $keyNumber) {
             throw new \InvalidArgumentException('Only key number 1 is supported for undiversified keys');
         }
@@ -115,6 +116,9 @@ class KeyDerivation
      */
     public function deriveTagKey(string $masterKey, string $uid, int $keyNumber): string
     {
+        // IMPORTANT: Validate parameters BEFORE factory key check to ensure
+        // invalid inputs are rejected even when using factory keys
+
         // Validate UID length
         if (7 !== strlen($uid)) {
             throw new \InvalidArgumentException(sprintf('UID must be exactly 7 bytes, got %d bytes', strlen($uid)));
