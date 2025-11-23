@@ -10,15 +10,21 @@ use KDuma\SDM\Exceptions\DecryptionException;
 use KDuma\SDM\Exceptions\ValidationException;
 use KDuma\SDM\ParamMode;
 use KDuma\SDM\SDM;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
 
 /**
  * Comprehensive test coverage for SDM implementation.
  *
  * @internal
- *
- * @coversNothing
  */
+#[CoversClass(SDM::class)]
+#[CoversClass(AESCipher::class)]
+#[UsesClass(EncMode::class)]
+#[UsesClass(ParamMode::class)]
+#[UsesClass(DecryptionException::class)]
+#[UsesClass(ValidationException::class)]
 class SDMCoverageTest extends TestCase
 {
     /**
