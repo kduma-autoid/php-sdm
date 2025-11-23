@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Helpers\ParameterParser;
+use App\Http\Responses\ErrorResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -55,9 +56,9 @@ class SDMController extends Controller
                 'fileDataUtf8' => null,
             ]);
         } catch (ValidationException $e) {
-            return $this->errorResponse($e->getMessage(), 403);
+            return new ErrorResponse($e->getMessage(), 403);
         } catch (\InvalidArgumentException $e) {
-            return $this->errorResponse($e->getMessage(), 400);
+            return new ErrorResponse($e->getMessage(), 400);
         }
     }
 
@@ -84,9 +85,9 @@ class SDMController extends Controller
                 'read_ctr' => $result['read_ctr'],
             ]);
         } catch (ValidationException $e) {
-            return $this->jsonErrorResponse($e->getMessage(), 403);
+            return new ErrorResponse($e->getMessage(), 403);
         } catch (\InvalidArgumentException $e) {
-            return $this->jsonErrorResponse($e->getMessage(), 400);
+            return new ErrorResponse($e->getMessage(), 400);
         }
     }
 
@@ -132,12 +133,12 @@ class SDMController extends Controller
 
             // Check for LRP mode requirement
             if (config('sdm.require_lrp') && $params['mode'] !== 'LRP') {
-                return $this->errorResponse('LRP mode is required', 400);
+                return new ErrorResponse('LRP mode is required', 400);
             }
 
             // Check if LRP mode is requested but not supported
             if ($params['mode'] === 'LRP') {
-                return $this->errorResponse('LRP mode is not yet supported in the php-sdm library', 501);
+                return new ErrorResponse('LRP mode is not yet supported in the php-sdm library', 501);
             }
 
             $sdm = $this->getSDM();
@@ -171,13 +172,13 @@ class SDMController extends Controller
 
             return view('info', $viewData);
         } catch (ValidationException $e) {
-            return $this->errorResponse($e->getMessage(), 403);
+            return new ErrorResponse($e->getMessage(), 403);
         } catch (DecryptionException $e) {
-            return $this->errorResponse($e->getMessage(), 400);
+            return new ErrorResponse($e->getMessage(), 400);
         } catch (\InvalidArgumentException $e) {
-            return $this->errorResponse($e->getMessage(), 400);
+            return new ErrorResponse($e->getMessage(), 400);
         } catch (\RuntimeException $e) {
-            return $this->errorResponse($e->getMessage(), 501);
+            return new ErrorResponse($e->getMessage(), 501);
         }
     }
 
@@ -191,12 +192,12 @@ class SDMController extends Controller
 
             // Check for LRP mode requirement
             if (config('sdm.require_lrp') && $params['mode'] !== 'LRP') {
-                return $this->jsonErrorResponse('LRP mode is required', 400);
+                return new ErrorResponse('LRP mode is required', 400);
             }
 
             // Check if LRP mode is requested but not supported
             if ($params['mode'] === 'LRP') {
-                return $this->jsonErrorResponse('LRP mode is not yet supported in the php-sdm library', 501);
+                return new ErrorResponse('LRP mode is not yet supported in the php-sdm library', 501);
             }
 
             $sdm = $this->getSDM();
@@ -232,13 +233,13 @@ class SDMController extends Controller
 
             return $this->jsonResponse($responseData);
         } catch (ValidationException $e) {
-            return $this->jsonErrorResponse($e->getMessage(), 403);
+            return new ErrorResponse($e->getMessage(), 403);
         } catch (DecryptionException $e) {
-            return $this->jsonErrorResponse($e->getMessage(), 400);
+            return new ErrorResponse($e->getMessage(), 400);
         } catch (\InvalidArgumentException $e) {
-            return $this->jsonErrorResponse($e->getMessage(), 400);
+            return new ErrorResponse($e->getMessage(), 400);
         } catch (\RuntimeException $e) {
-            return $this->jsonErrorResponse($e->getMessage(), 501);
+            return new ErrorResponse($e->getMessage(), 501);
         }
     }
 
@@ -305,26 +306,10 @@ class SDMController extends Controller
     }
 
     /**
-     * Return error view.
-     */
-    private function errorResponse(string $message, int $status = 400)
-    {
-        return response()->view('error', ['message' => $message], $status);
-    }
-
-    /**
      * Return JSON response with pretty printing.
      */
     private function jsonResponse(array $data, int $status = 200): JsonResponse
     {
         return response()->json($data, $status, [], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
-    }
-
-    /**
-     * Return JSON error response.
-     */
-    private function jsonErrorResponse(string $message, int $status = 400): JsonResponse
-    {
-        return $this->jsonResponse(['error' => $message], $status);
     }
 }
