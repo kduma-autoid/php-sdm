@@ -289,10 +289,14 @@ class SDM implements SDMInterface
             $lrpCipher = new LRPCipher($sdmFileReadKey, 0);
             $masterKey = $lrpCipher->cmac($sv1stream, $sdmFileReadKey);
 
-            // Decrypt file data using LRP with mode 1 and read counter + 3 zero bytes as IV
-            $lrpSession = new LRPCipher($masterKey, 1, $readCtr."\x00\x00\x00", false);
+            // Decrypt file data using LRP with mode 1 and 6-byte counter as IV
+            // Note: LRP supports variable-length counters (1-16 bytes). The counter is
+            // processed as nibbles in evalLRP(), so a 6-byte counter produces 12 nibbles.
+            // This is intentional per the NTAG 424 DNA LRP specification.
+            $counter = $readCtr."\x00\x00\x00"; // 3-byte read counter + 3 zero bytes = 6 bytes
+            $lrpSession = new LRPCipher($masterKey, 1, $counter, false);
 
-            return $lrpSession->decrypt($encFileData, $masterKey, $readCtr."\x00\x00\x00");
+            return $lrpSession->decrypt($encFileData, $masterKey, $counter);
         }
 
         // AES mode - derive encryption session key using SV1
@@ -444,11 +448,14 @@ class SDM implements SDMInterface
         $mode = $this->getEncryptionMode($piccEncData);
 
         if (EncMode::LRP === $mode) {
-            // LRP mode - extract PICC random and decrypt using LRP
-            $piccRandom = substr($piccEncData, 0, 8);
+            // LRP mode - extract 8-byte PICC random and decrypt using LRP
+            $piccRandom = substr($piccEncData, 0, 8); // 8 bytes
             $encryptedPiccData = substr($piccEncData, 8);
 
-            // Use LRP to decrypt PICC data (no padding for PICC data, use 8-byte PICC random as counter)
+            // Use LRP to decrypt PICC data with 8-byte PICC random as counter
+            // Note: LRP supports variable-length counters (1-16 bytes). The counter is
+            // processed as nibbles in evalLRP(), so an 8-byte counter produces 16 nibbles.
+            // This is intentional per the NTAG 424 DNA LRP specification.
             $lrpCipher = new LRPCipher($sdmMetaReadKey, 0, $piccRandom, false);
             $plaintext = $lrpCipher->decrypt($encryptedPiccData, $sdmMetaReadKey, $piccRandom);
         } else {

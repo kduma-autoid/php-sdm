@@ -153,9 +153,16 @@ class LRPCipher implements CipherInterface
     /**
      * Evaluate LRP function (Algorithm 3).
      *
+     * Processes input data of any length by converting it to nibbles (4-bit values).
+     * Each byte produces 2 nibbles, so:
+     * - 1-byte input = 2 nibbles
+     * - 8-byte input = 16 nibbles (used for PICC random in NTAG 424 DNA)
+     * - 6-byte input = 12 nibbles (used for read counter in NTAG 424 DNA)
+     * - 16-byte input = 32 nibbles (standard AES block size)
+     *
      * @param array<int, string> $plaintexts Precomputed plaintexts
      * @param string             $key        Updated key
-     * @param string             $input      Input data
+     * @param string             $input      Input data (variable length, processed as nibbles)
      * @param bool               $finalize   Whether to apply finalization
      *
      * @return string Evaluation result (16 bytes)
