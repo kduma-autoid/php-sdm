@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<ruleset name="PHP SDM Coding Standard">
+    <description>Coding standard for PHP SDM library</description>
+
+    <!-- Show progress -->
+    <arg value="p"/>
+    <!-- Use colors -->
+    <arg name="colors"/>
+    <!-- Show sniff codes -->
+    <arg value="s"/>
+
+    <!-- Paths to check -->
+    <file>src</file>
+    <file>tests</file>
+
+    <!-- Exclude vendor directory -->
+    <exclude-pattern>*/vendor/*</exclude-pattern>
+
+    <!-- PSR-12 coding standard -->
+    <rule ref="PSR12"/>
+
+    <!-- Additional rules -->
+    <rule ref="Generic.Arrays.DisallowLongArraySyntax"/>
+    <rule ref="Generic.Commenting.Todo"/>
+    <rule ref="Generic.PHP.RequireStrictTypes"/>
+</ruleset>
