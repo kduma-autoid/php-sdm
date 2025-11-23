@@ -11,14 +11,35 @@ class AESCipher implements CipherInterface
 {
     public function encrypt(string $data, string $key, string $iv): string
     {
-        // TODO: Implementation
-        throw new \RuntimeException('Not implemented yet');
+        $encrypted = openssl_encrypt($data, 'AES-128-CBC', $key, OPENSSL_RAW_DATA | OPENSSL_NO_PADDING, $iv);
+
+        if (false === $encrypted) {
+            throw new \RuntimeException('Failed to encrypt data');
+        }
+
+        return $encrypted;
     }
 
     public function decrypt(string $data, string $key, string $iv): string
     {
-        // TODO: Implementation
-        throw new \RuntimeException('Not implemented yet');
+        $decrypted = openssl_decrypt($data, 'AES-128-CBC', $key, OPENSSL_RAW_DATA | OPENSSL_NO_PADDING, $iv);
+
+        if (false === $decrypted) {
+            throw new \RuntimeException('Failed to decrypt data');
+        }
+
+        return $decrypted;
+    }
+
+    public function encryptECB(string $data, string $key): string
+    {
+        $encrypted = openssl_encrypt($data, 'AES-128-ECB', $key, OPENSSL_RAW_DATA | OPENSSL_NO_PADDING);
+
+        if (false === $encrypted) {
+            throw new \RuntimeException('Failed to encrypt data in ECB mode');
+        }
+
+        return $encrypted;
     }
 
     public function cmac(string $data, string $key): string

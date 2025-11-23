@@ -140,28 +140,33 @@ final class AESCipherTest extends TestCase
     }
 
     /**
-     * Test that encrypt method throws RuntimeException (not yet implemented).
+     * Test encrypt and decrypt methods with AES-CBC.
      */
-    public function testEncryptNotImplemented(): void
+    public function testEncryptDecrypt(): void
     {
         $cipher = new AESCipher();
+        $key = str_repeat('k', 16);
+        $iv = str_repeat('i', 16);
+        $plaintext = str_repeat('p', 16);
 
-        $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('Not implemented yet');
+        $encrypted = $cipher->encrypt($plaintext, $key, $iv);
+        $this->assertSame(16, strlen($encrypted));
 
-        $cipher->encrypt('data', 'key1234567890123', '1234567890123456');
+        $decrypted = $cipher->decrypt($encrypted, $key, $iv);
+        $this->assertSame($plaintext, $decrypted);
     }
 
     /**
-     * Test that decrypt method throws RuntimeException (not yet implemented).
+     * Test encryptECB method.
      */
-    public function testDecryptNotImplemented(): void
+    public function testEncryptECB(): void
     {
         $cipher = new AESCipher();
+        $key = hex2bin('00000000000000000000000000000000');
+        $plaintext = str_repeat("\x00", 16);
 
-        $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('Not implemented yet');
-
-        $cipher->decrypt('data', 'key1234567890123', '1234567890123456');
+        $encrypted = $cipher->encryptECB($plaintext, $key);
+        $this->assertSame(16, strlen($encrypted));
+        $this->assertSame('66e94bd4ef8a2c3b884cfa59ca342b2e', bin2hex($encrypted));
     }
 }

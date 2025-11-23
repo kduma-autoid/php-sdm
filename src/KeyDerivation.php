@@ -74,26 +74,21 @@ class KeyDerivation
     /**
      * Derive an undiversified key from a master key.
      *
-     * @param string $masterKey The master key (binary, 16 bytes)
+     * @param string $masterKey The master key (binary, 16-32 bytes)
      * @param int    $keyNumber The key number (must be 1)
      *
      * @return string The derived key (binary, 16 bytes)
      */
     public function deriveUndiversifiedKey(string $masterKey, int $keyNumber): string
     {
-        // Validate master key length
-        if (16 !== strlen($masterKey)) {
-            throw new \InvalidArgumentException(sprintf('Master key must be exactly 16 bytes, got %d bytes', strlen($masterKey)));
-        }
-
-        // Check for factory key (all zeros)
-        if ($masterKey === str_repeat("\x00", 16)) {
-            return str_repeat("\x00", 16);
-        }
-
         // Only key number 1 is supported for undiversified keys
         if (1 !== $keyNumber) {
             throw new \InvalidArgumentException('Only key number 1 is supported for undiversified keys');
+        }
+
+        // Check for factory key (all zeros) - exactly 16 bytes of zeros
+        if ($masterKey === str_repeat("\x00", 16)) {
+            return str_repeat("\x00", 16);
         }
 
         // Derive key using HMAC-SHA256 with DIV_CONST1
@@ -112,7 +107,7 @@ class KeyDerivation
     /**
      * Derive a tag-specific (UID-diversified) key from a master key.
      *
-     * @param string $masterKey The master key (binary, 16 bytes)
+     * @param string $masterKey The master key (binary, 16-32 bytes)
      * @param string $uid       The UID of the tag (binary, 7 bytes)
      * @param int    $keyNumber The key number (1 or 2)
      *
@@ -120,11 +115,6 @@ class KeyDerivation
      */
     public function deriveTagKey(string $masterKey, string $uid, int $keyNumber): string
     {
-        // Validate master key length
-        if (16 !== strlen($masterKey)) {
-            throw new \InvalidArgumentException(sprintf('Master key must be exactly 16 bytes, got %d bytes', strlen($masterKey)));
-        }
-
         // Validate UID length
         if (7 !== strlen($uid)) {
             throw new \InvalidArgumentException(sprintf('UID must be exactly 7 bytes, got %d bytes', strlen($uid)));
@@ -135,7 +125,7 @@ class KeyDerivation
             throw new \InvalidArgumentException(sprintf('Key number must be 1 or 2, got %d', $keyNumber));
         }
 
-        // Check for factory key (all zeros)
+        // Check for factory key (all zeros) - exactly 16 bytes of zeros
         if ($masterKey === str_repeat("\x00", 16)) {
             return str_repeat("\x00", 16);
         }

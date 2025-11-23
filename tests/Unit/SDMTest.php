@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace KDuma\SDM\Tests\Unit;
 
+use KDuma\SDM\Exceptions\DecryptionException;
 use KDuma\SDM\SDM;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
@@ -22,28 +23,26 @@ final class SDMTest extends TestCase
     }
 
     /**
-     * Test that decrypt method throws RuntimeException (not yet implemented).
+     * Test decrypt method with invalid data throws DecryptionException.
      */
-    public function testDecryptNotImplemented(): void
+    public function testDecryptInvalidData(): void
     {
-        $sdm = new SDM('1234567890123456', '1234567890123456');
+        $sdm = new SDM(str_repeat('k', 16), str_repeat('m', 16));
 
-        $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('Not implemented yet');
+        $this->expectException(DecryptionException::class);
 
-        $sdm->decrypt('encData', 'encFileData', 'cmac');
+        $sdm->decrypt('invalid', 'encFileData', 'cmac1234');
     }
 
     /**
-     * Test that validate method throws RuntimeException (not yet implemented).
+     * Test validate method returns false for invalid MAC.
      */
-    public function testValidateNotImplemented(): void
+    public function testValidateInvalidMac(): void
     {
-        $sdm = new SDM('1234567890123456', '1234567890123456');
+        $sdm = new SDM(str_repeat('k', 16), str_repeat('m', 16));
 
-        $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('Not implemented yet');
+        $result = $sdm->validate(str_repeat('d', 10), 'badmac12');
 
-        $sdm->validate('data', 'cmac');
+        $this->assertFalse($result);
     }
 }

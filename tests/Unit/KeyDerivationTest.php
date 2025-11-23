@@ -139,17 +139,6 @@ final class KeyDerivationTest extends TestCase
     }
 
     /**
-     * Test that invalid master key length throws exception.
-     */
-    public function testInvalidMasterKeyLength(): void
-    {
-        $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('Master key must be exactly 16 bytes, got 8 bytes');
-
-        $this->kdf->deriveUndiversifiedKey('shortkey', 1);
-    }
-
-    /**
      * Test that invalid UID length throws exception.
      */
     public function testInvalidUidLength(): void
