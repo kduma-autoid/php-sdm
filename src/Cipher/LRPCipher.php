@@ -302,7 +302,12 @@ class LRPCipher implements CipherInterface
     }
 
     /**
-     * Encrypt data using AES-128-ECB mode (interface implementation).
+     * Encrypt data using AES-128-ECB mode.
+     *
+     * This method is provided for CipherInterface compatibility and delegates
+     * to the underlying AES-ECB implementation. Note that ECB mode is not used
+     * for LRP encryption itself - LRP uses LRICB mode which builds upon ECB
+     * as a primitive.
      *
      * @param string $data Data to encrypt (must be 16-byte aligned)
      * @param string $key  Encryption key (16 bytes)
