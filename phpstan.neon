@@ -5,16 +5,3 @@ parameters:
         - tests
     excludePaths:
         - vendor
-    ignoreErrors:
-        -
-            message: '#expects string, string\|false given#'
-            paths:
-                - tests/*
-        -
-            message: '#expects string\|null, string\|false given#'
-            paths:
-                - tests/*
-        -
-            message: '#Unreachable statement - code above always terminates#'
-            paths:
-                - tests/*
