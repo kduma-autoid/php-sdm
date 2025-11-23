@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace KDuma\SDM\Tests\Unit;
 
 use KDuma\SDM\Cipher\AESCipher;
+use KDuma\SDM\Cipher\LRPCipher;
 use KDuma\SDM\EncMode;
 use KDuma\SDM\Exceptions\DecryptionException;
 use KDuma\SDM\Exceptions\ValidationException;
@@ -21,6 +22,7 @@ use PHPUnit\Framework\TestCase;
  */
 #[CoversClass(SDM::class)]
 #[CoversClass(AESCipher::class)]
+#[UsesClass(LRPCipher::class)]
 #[UsesClass(EncMode::class)]
 #[UsesClass(ParamMode::class)]
 #[UsesClass(DecryptionException::class)]
