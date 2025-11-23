@@ -49,7 +49,7 @@ class SDMController extends Controller
             );
 
             return new ValidResponse([
-                'encryption_mode' => $result['encryption_mode']->value,
+                'encryption_mode' => $result['encryption_mode']->name,
                 'uid' => $result['uid'],
                 'read_ctr' => $result['read_ctr'],
                 'file_data' => null,
@@ -80,7 +80,7 @@ class SDMController extends Controller
             );
 
             return new ValidResponse([
-                'encryption_mode' => $result['encryption_mode']->value,
+                'encryption_mode' => $result['encryption_mode']->name,
                 'uid' => $result['uid'],
                 'read_ctr' => $result['read_ctr'],
             ]);
@@ -154,7 +154,7 @@ class SDMController extends Controller
 
             $responseData = [
                 'picc_data_tag' => $result['picc_data_tag'],
-                'encryption_mode' => $result['encryption_mode']->value,
+                'encryption_mode' => $result['encryption_mode']->name,
                 'uid' => $result['uid'],
                 'read_ctr' => $result['read_ctr'],
                 'file_data' => $result['file_data'],
@@ -213,7 +213,7 @@ class SDMController extends Controller
 
             $responseData = [
                 'picc_data_tag' => $result['picc_data_tag'],
-                'encryption_mode' => $result['encryption_mode']->value,
+                'encryption_mode' => $result['encryption_mode']->name,
                 'uid' => $result['uid'],
                 'read_ctr' => $result['read_ctr'],
                 'file_data' => $result['file_data'],
