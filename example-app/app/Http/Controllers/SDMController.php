@@ -135,11 +135,6 @@ class SDMController extends Controller
                 return $this->errorResponse('LRP mode is required', 400);
             }
 
-            // Check if LRP mode is requested but not supported
-            if ($params['mode'] === 'LRP') {
-                return $this->errorResponse('LRP mode is not yet supported in the php-sdm library', 501);
-            }
-
             $sdm = $this->getSDM();
 
             $result = $sdm->decryptSunMessage(
@@ -192,11 +187,6 @@ class SDMController extends Controller
             // Check for LRP mode requirement
             if (config('sdm.require_lrp') && $params['mode'] !== 'LRP') {
                 return $this->jsonErrorResponse('LRP mode is required', 400);
-            }
-
-            // Check if LRP mode is requested but not supported
-            if ($params['mode'] === 'LRP') {
-                return $this->jsonErrorResponse('LRP mode is not yet supported in the php-sdm library', 501);
             }
 
             $sdm = $this->getSDM();
