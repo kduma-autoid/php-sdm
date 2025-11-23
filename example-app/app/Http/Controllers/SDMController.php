@@ -15,7 +15,7 @@ use KDuma\SDM\SDM;
 class SDMController extends Controller
 {
     /**
-     * Plain SUN message validation (HTML).
+     * Plain SUN message validation.
      */
     public function tagPlainText(Request $request)
     {
@@ -46,36 +46,7 @@ class SDMController extends Controller
     }
 
     /**
-     * Plain SUN message validation (JSON API).
-     */
-    public function apiTagPlainText(Request $request)
-    {
-        try {
-            $params = ParameterParser::parsePlainParams($request);
-
-            $sdm = $this->getSDM();
-
-            $result = $sdm->validatePlainSun(
-                uid: $params['uid'],
-                readCtr: $params['ctr'],
-                sdmmac: $params['sdmmac'],
-                sdmFileReadKey: $this->getMacKey($params['uid'])
-            );
-
-            return new ValidResponse([
-                'encryption_mode' => $result['encryption_mode']->name,
-                'uid' => $result['uid'],
-                'read_ctr' => $result['read_ctr'],
-            ]);
-        } catch (ValidationException $e) {
-            return new ErrorResponse($e->getMessage(), 403);
-        } catch (\InvalidArgumentException $e) {
-            return new ErrorResponse($e->getMessage(), 400);
-        }
-    }
-
-    /**
-     * SUN message decryption (HTML).
+     * SUN message decryption.
      */
     public function tag(Request $request)
     {
@@ -83,27 +54,11 @@ class SDMController extends Controller
     }
 
     /**
-     * SUN message decryption (JSON API).
-     */
-    public function apiTag(Request $request)
-    {
-        return $this->processEncryptedTagApi($request, false);
-    }
-
-    /**
-     * Tamper-tag SUN message decryption (HTML).
+     * Tamper-tag SUN message decryption.
      */
     public function tagTamper(Request $request)
     {
         return $this->processEncryptedTag($request, true);
-    }
-
-    /**
-     * Tamper-tag SUN message decryption (JSON API).
-     */
-    public function apiTagTamper(Request $request)
-    {
-        return $this->processEncryptedTagApi($request, true);
     }
 
     /**
@@ -155,53 +110,6 @@ class SDMController extends Controller
         }
     }
 
-    /**
-     * Process encrypted tag API (common logic for API routes).
-     */
-    private function processEncryptedTagApi(Request $request, bool $isTamperTag)
-    {
-        try {
-            $params = ParameterParser::parseEncryptedParams($request);
-
-            $sdm = $this->getSDM();
-
-            $result = $sdm->decryptSunMessage(
-                paramMode: \KDuma\SDM\ParamMode::SEPARATED,
-                sdmMetaReadKey: $this->getEncKey(),
-                sdmFileReadKey: fn(string $uid) => $this->getMacKey($uid),
-                piccEncData: $params['picc_data'],
-                sdmmac: $params['sdmmac'],
-                encFileData: $params['enc_file_data']
-            );
-
-            $responseData = [
-                'picc_data_tag' => $result['picc_data_tag'],
-                'encryption_mode' => $result['encryption_mode']->name,
-                'uid' => $result['uid'],
-                'read_ctr' => $result['read_ctr'],
-                'file_data' => $result['file_data'],
-                'file_data_utf8' => $result['file_data'] ? $this->convertToUtf8($result['file_data']) : null,
-            ];
-
-            // Add tamper status if this is a tamper tag
-            if ($isTamperTag && $result['file_data']) {
-                $tamperInfo = ParameterParser::interpretTamperStatus($result['file_data']);
-                if ($tamperInfo) {
-                    $responseData['tamper_status'] = $tamperInfo['status'];
-                }
-            }
-
-            return new ValidResponse($responseData);
-        } catch (ValidationException $e) {
-            return new ErrorResponse($e->getMessage(), 403);
-        } catch (DecryptionException $e) {
-            return new ErrorResponse($e->getMessage(), 400);
-        } catch (\InvalidArgumentException $e) {
-            return new ErrorResponse($e->getMessage(), 400);
-        } catch (\RuntimeException $e) {
-            return new ErrorResponse($e->getMessage(), 501);
-        }
-    }
 
     /**
      * Get SDM instance.
