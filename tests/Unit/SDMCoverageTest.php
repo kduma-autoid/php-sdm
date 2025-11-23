@@ -97,6 +97,7 @@ class SDMCoverageTest extends TestCase
             EncMode::LRP,
         );
 
+        // Decrypted data is ASCII string '0102030400000000' (hex: 30313032303330343030303030303030)
         $this->assertSame('0102030400000000', $result);
     }
 
@@ -146,6 +147,7 @@ class SDMCoverageTest extends TestCase
 
         $this->assertSame(EncMode::LRP, $res['encryption_mode']);
         $this->assertSame(hex2bin('042e1d222a6380'), $res['uid']);
+        // Decrypted file data is ASCII string '0102030400000000' (not binary hex 0102030400000000)
         $this->assertSame('0102030400000000', $res['file_data']);
     }
 

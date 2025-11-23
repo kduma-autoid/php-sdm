@@ -253,6 +253,7 @@ class SDMProtocolTest extends TestCase
         $this->assertSame("\xc7", $res['picc_data_tag']);
         $this->assertSame(hex2bin('042e1d222a6380'), $res['uid']);
         $this->assertSame(123, $res['read_ctr']);
+        // Decrypted file data is ASCII string '0102030400000000' (not binary hex 0102030400000000)
         $this->assertSame('0102030400000000', $res['file_data']);
         $this->assertSame(EncMode::LRP, $res['encryption_mode']);
     }
