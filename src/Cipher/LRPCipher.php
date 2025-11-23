@@ -96,7 +96,7 @@ class LRPCipher implements CipherInterface
         if (strlen($this->counter) > 16) {
             throw new \InvalidArgumentException(sprintf(
                 'Counter must not exceed 16 bytes, got %d bytes',
-                strlen($this->counter)
+                strlen($this->counter),
             ));
         }
 
@@ -336,7 +336,7 @@ class LRPCipher implements CipherInterface
         if (strlen($counter) > 16) {
             throw new \InvalidArgumentException(sprintf(
                 'Counter must not exceed 16 bytes, got %d bytes',
-                strlen($counter)
+                strlen($counter),
             ));
         }
 
