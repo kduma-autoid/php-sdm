@@ -474,12 +474,7 @@ class LRPCipher implements CipherInterface
             throw new \InvalidArgumentException('Cannot XOR strings of different lengths');
         }
 
-        $result = '';
-        for ($i = 0; $i < strlen($a); ++$i) {
-            $result .= chr(ord($a[$i]) ^ ord($b[$i]));
-        }
-
-        return $result;
+        return $a ^ $b;
     }
 
     /**
@@ -495,9 +490,17 @@ class LRPCipher implements CipherInterface
      */
     private function gfMultiply(string $element, int $factor): string
     {
+        // Determine number of iterations based on factor
+        // Only 2 and 4 are valid per the LRP specification
+        $iterations = match ($factor) {
+            2 => 1,  // multiply by 2: shift once
+            4 => 2,  // multiply by 4: shift twice
+            default => throw new \InvalidArgumentException('Factor must be 2 or 4'),
+        };
+
         $result = $element;
 
-        for ($i = 0; $i < log($factor, 2); ++$i) {
+        for ($i = 0; $i < $iterations; ++$i) {
             // Check MSB (most significant bit)
             $msb = (ord($result[0]) & 0x80) !== 0;
 
