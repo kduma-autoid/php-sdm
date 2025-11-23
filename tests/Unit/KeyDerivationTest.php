@@ -170,4 +170,20 @@ final class KeyDerivationTest extends TestCase
 
         $this->kdf->deriveUndiversifiedKey($masterKey, 2);
     }
+
+    /**
+     * Test that invalid key number throws exception for deriveTagKey.
+     */
+    public function testInvalidTagKeyNumber(): void
+    {
+        $masterKey = hex2bin('C9EB67DF090AFF47C3B19A2516680B9D');
+        $uid = hex2bin('010203040506AB');
+        $this->assertNotFalse($masterKey);
+        $this->assertNotFalse($uid);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Key number must be 1 or 2, got 3');
+
+        $this->kdf->deriveTagKey($masterKey, $uid, 3);
+    }
 }

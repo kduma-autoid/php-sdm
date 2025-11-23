@@ -130,6 +130,11 @@ class KeyDerivation
             throw new \InvalidArgumentException(sprintf('UID must be exactly 7 bytes, got %d bytes', strlen($uid)));
         }
 
+        // Validate key number
+        if (1 !== $keyNumber && 2 !== $keyNumber) {
+            throw new \InvalidArgumentException(sprintf('Key number must be 1 or 2, got %d', $keyNumber));
+        }
+
         // Check for factory key (all zeros)
         if ($masterKey === str_repeat("\x00", 16)) {
             return str_repeat("\x00", 16);
