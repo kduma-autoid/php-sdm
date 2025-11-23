@@ -22,7 +22,7 @@ class SDMServiceProvider extends ServiceProvider
 
         // Register a factory for creating SDM instances
         $this->app->bind('sdm.factory', function ($app) {
-            return function (?string $uid = null): SDM {
+            return function (?string $uid = null) use ($app): SDM {
                 $masterKeyHex = config('sdm.master_key');
                 $masterKey = hex2bin($masterKeyHex);
 
