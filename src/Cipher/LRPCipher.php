@@ -260,8 +260,12 @@ class LRPCipher implements CipherInterface
     /**
      * Calculate CMAC using LRP.
      *
+     * NOTE: The $key parameter is ignored by this implementation. LRP uses the
+     * internal key and plaintexts that were set via the constructor. The key
+     * parameter is only present for interface compatibility.
+     *
      * @param string $data Data to authenticate
-     * @param string $key  MAC key (16 bytes)
+     * @param string $key  MAC key - IGNORED, uses constructor key
      *
      * @return string CMAC value (16 bytes)
      */
