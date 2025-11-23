@@ -52,7 +52,7 @@ class SDMCoverageTest extends TestCase
         );
 
         $this->expectException(DecryptionException::class);
-        $this->expectExceptionMessage('Unsupported encryption mode');
+        $this->expectExceptionMessage('Invalid encrypted PICC data length - expected 16 bytes (AES) or 24 bytes (LRP), got 7 bytes. This may indicate malformed or truncated input data.');
 
         $sdm->getEncryptionMode('invalid');
     }
@@ -225,7 +225,7 @@ class SDMCoverageTest extends TestCase
             sdmFileReadKey: fn ($uid) => hex2bin('00000000000000000000000000000000'),
             piccEncData: $piccEncData,
             sdmmac: hex2bin('0000000000000000'),
-            encFileData: hex2bin('0000000000000000'),
+            encFileData: hex2bin('00000000000000000000000000000000'), // 16 bytes (valid length)
         );
     }
 
@@ -393,5 +393,115 @@ class SDMCoverageTest extends TestCase
         );
 
         $this->assertSame(16, strlen($result));
+    }
+
+    /**
+     * Test decryptSunMessage with invalid SDMMAC length (malformed input).
+     */
+    public function testDecryptSunMessageInvalidSdmmacLength(): void
+    {
+        $sdm = new SDM(
+            encKey: hex2bin('00000000000000000000000000000000'),
+            macKey: hex2bin('00000000000000000000000000000000'),
+        );
+
+        $this->expectException(DecryptionException::class);
+        $this->expectExceptionMessage('Invalid SDMMAC length - expected 8 bytes, got 7 bytes. This may indicate malformed or truncated input data.');
+
+        // Simulate truncated SDMMAC (odd length, like from malformed hex)
+        $sdm->decryptSunMessage(
+            paramMode: ParamMode::SEPARATED,
+            sdmMetaReadKey: hex2bin('00000000000000000000000000000000'),
+            sdmFileReadKey: fn ($uid) => hex2bin('00000000000000000000000000000000'),
+            piccEncData: hex2bin('C66203E91031E7505968CE3C6237F530'),
+            sdmmac: hex2bin('F9481AC7D855BD'), // 7 bytes instead of 8
+        );
+    }
+
+    /**
+     * Test decryptSunMessage with invalid encrypted file data length (malformed input).
+     */
+    public function testDecryptSunMessageInvalidEncFileDataLength(): void
+    {
+        $sdm = new SDM(
+            encKey: hex2bin('00000000000000000000000000000000'),
+            macKey: hex2bin('00000000000000000000000000000000'),
+        );
+
+        $this->expectException(DecryptionException::class);
+        $this->expectExceptionMessage('Invalid encrypted file data length - must be a multiple of 16 bytes, got 15 bytes. This may indicate malformed or truncated input data.');
+
+        // Simulate truncated encFileData (15 bytes instead of 16, like from malformed hex input)
+        $sdm->decryptSunMessage(
+            paramMode: ParamMode::SEPARATED,
+            sdmMetaReadKey: hex2bin('00000000000000000000000000000000'),
+            sdmFileReadKey: fn ($uid) => hex2bin('00000000000000000000000000000000'),
+            piccEncData: hex2bin('C66203E91031E7505968CE3C6237F530'),
+            sdmmac: hex2bin('F9481AC7D855BDB6'),
+            encFileData: str_repeat("\x00", 15), // 15 bytes instead of 16
+        );
+    }
+
+    /**
+     * Test validatePlainSun with invalid UID length (malformed input).
+     */
+    public function testValidatePlainSunInvalidUidLength(): void
+    {
+        $sdm = new SDM(
+            encKey: hex2bin('00000000000000000000000000000000'),
+            macKey: hex2bin('00000000000000000000000000000000'),
+        );
+
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('Invalid UID length - expected 7 bytes, got 6 bytes. This may indicate malformed or truncated input data.');
+
+        $sdm->validatePlainSun(
+            uid: hex2bin('041E3C8A2D6B'), // 6 bytes instead of 7
+            readCtr: hex2bin('000006'),
+            sdmmac: hex2bin('4B00064004B0B3D3'),
+            sdmFileReadKey: hex2bin('00000000000000000000000000000000'),
+        );
+    }
+
+    /**
+     * Test validatePlainSun with invalid read counter length (malformed input).
+     */
+    public function testValidatePlainSunInvalidReadCtrLength(): void
+    {
+        $sdm = new SDM(
+            encKey: hex2bin('00000000000000000000000000000000'),
+            macKey: hex2bin('00000000000000000000000000000000'),
+        );
+
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('Invalid read counter length - expected 3 bytes, got 2 bytes. This may indicate malformed or truncated input data.');
+
+        $sdm->validatePlainSun(
+            uid: hex2bin('041E3C8A2D6B80'),
+            readCtr: hex2bin('0000'), // 2 bytes instead of 3
+            sdmmac: hex2bin('4B00064004B0B3D3'),
+            sdmFileReadKey: hex2bin('00000000000000000000000000000000'),
+        );
+    }
+
+    /**
+     * Test validatePlainSun with invalid SDMMAC length (malformed input).
+     */
+    public function testValidatePlainSunInvalidSdmmacLength(): void
+    {
+        $sdm = new SDM(
+            encKey: hex2bin('00000000000000000000000000000000'),
+            macKey: hex2bin('00000000000000000000000000000000'),
+        );
+
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('Invalid SDMMAC length - expected 8 bytes, got 7 bytes. This may indicate malformed or truncated input data.');
+
+        $sdm->validatePlainSun(
+            uid: hex2bin('041E3C8A2D6B80'),
+            readCtr: hex2bin('000006'),
+            sdmmac: hex2bin('4B00064004B0B3'), // 7 bytes instead of 8
+            sdmFileReadKey: hex2bin('00000000000000000000000000000000'),
+        );
     }
 }
