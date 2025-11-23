@@ -93,7 +93,10 @@ class KeyDerivation
         $keyLength = strlen($masterKey);
         if ($keyLength < 16 || $keyLength > 32) {
             throw new \InvalidArgumentException(
-                sprintf('Master key must be 16-32 bytes (got %d bytes). Keys shorter than 16 bytes are cryptographically weak.', $keyLength),
+                sprintf(
+                    'Master key must be 16-32 bytes (got %d bytes). Keys shorter than 16 bytes are cryptographically weak, and keys longer than 32 bytes are not supported by the key derivation algorithm.',
+                    $keyLength,
+                ),
             );
         }
 
@@ -143,7 +146,10 @@ class KeyDerivation
         $keyLength = strlen($masterKey);
         if ($keyLength < 16 || $keyLength > 32) {
             throw new \InvalidArgumentException(
-                sprintf('Master key must be 16-32 bytes (got %d bytes). Keys shorter than 16 bytes are cryptographically weak.', $keyLength),
+                sprintf(
+                    'Master key must be 16-32 bytes (got %d bytes). Keys shorter than 16 bytes are cryptographically weak, and keys longer than 32 bytes are not supported by the key derivation algorithm.',
+                    $keyLength,
+                ),
             );
         }
 

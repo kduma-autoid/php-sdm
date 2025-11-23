@@ -236,13 +236,17 @@ class SDM implements SDMInterface
     }
 
     /**
-     * Validate plain SUN message.
+     * Validate the SDMMAC of plain (unencrypted) UID and read counter data.
      *
-     * @param string       $uid            UID of the tag (7 bytes)
-     * @param string       $readCtr        SDMReadCtr (3 bytes)
-     * @param string       $sdmmac         SDMMAC to validate
-     * @param string       $sdmFileReadKey MAC calculation key
-     * @param null|EncMode $mode           Encryption mode
+     * This method verifies that the provided SDMMAC correctly authenticates
+     * the given UID and read counter values. It does not decrypt any data,
+     * only validates the MAC.
+     *
+     * @param string       $uid            The tag's unique identifier (7 bytes)
+     * @param string       $readCtr        The SDM read counter value (3 bytes, little-endian)
+     * @param string       $sdmmac         The SDMMAC to validate against (8 bytes)
+     * @param string       $sdmFileReadKey The MAC calculation key (K_SDMFileReadKey, 16 bytes)
+     * @param null|EncMode $mode           Encryption mode used (EncMode::AES or EncMode::LRP)
      *
      * @return array{encryption_mode: EncMode, uid: string, read_ctr: int}
      *
