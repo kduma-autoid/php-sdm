@@ -166,16 +166,18 @@ class LRPCipher implements CipherInterface
     /**
      * Encrypt data using LRICB mode.
      *
+     * NOTE: The $iv parameter is ignored by this implementation. LRP uses an
+     * internal counter that must be set via the constructor or setCounter().
+     * The IV parameter is only present for CipherInterface compatibility.
+     *
      * @param string $data Data to encrypt
-     * @param string $key  Encryption key (16 bytes)
-     * @param string $iv   Initialization vector (16 bytes)
+     * @param string $key  Encryption key (16 bytes) - ignored, uses constructor key
+     * @param string $iv   Initialization vector - IGNORED, uses internal counter
      *
      * @return string Encrypted data
      */
     public function encrypt(string $data, string $key, string $iv): string
     {
-        // Note: This implementation uses the internal counter, not the passed IV
-        // The IV parameter is kept for interface compatibility
         $plaintext = $data;
 
         // Apply padding if enabled
@@ -205,16 +207,18 @@ class LRPCipher implements CipherInterface
     /**
      * Decrypt data using LRICB mode.
      *
+     * NOTE: The $iv parameter is ignored by this implementation. LRP uses an
+     * internal counter that must be set via the constructor or setCounter().
+     * The IV parameter is only present for CipherInterface compatibility.
+     *
      * @param string $data Data to decrypt
-     * @param string $key  Decryption key (16 bytes)
-     * @param string $iv   Initialization vector (16 bytes)
+     * @param string $key  Decryption key (16 bytes) - ignored, uses constructor key
+     * @param string $iv   Initialization vector - IGNORED, uses internal counter
      *
      * @return string Decrypted data
      */
     public function decrypt(string $data, string $key, string $iv): string
     {
-        // Note: This implementation uses the internal counter, not the passed IV
-        // The IV parameter is kept for interface compatibility
         $plaintext = '';
         $blocks = str_split($data, self::BLOCK_SIZE);
 
