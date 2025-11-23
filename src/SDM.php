@@ -180,10 +180,9 @@ class SDM implements SDMInterface
         // AES mode - derive CMAC session key using SV2
         $sv2stream = self::SV2_PREFIX_CMAC.$piccData;
 
-        // Zero padding till the end of the block
-        while (0 !== strlen($sv2stream) % 16) {
-            $sv2stream .= "\x00";
-        }
+        // Zero padding to next 16-byte block boundary
+        $paddedLength = (int) (ceil(strlen($sv2stream) / 16) * 16);
+        $sv2stream = str_pad($sv2stream, $paddedLength, "\x00");
 
         $c2 = $this->cipher->cmac($sv2stream, $sdmFileReadKey);
         $macDigest = $this->cipher->cmac($inputBuf, $c2);
@@ -226,10 +225,9 @@ class SDM implements SDMInterface
         // AES mode - derive encryption session key using SV1
         $sv1stream = self::SV1_PREFIX_ENC.$piccData;
 
-        // Zero padding till the end of the block
-        while (0 !== strlen($sv1stream) % 16) {
-            $sv1stream .= "\x00";
-        }
+        // Zero padding to next 16-byte block boundary
+        $paddedLength = (int) (ceil(strlen($sv1stream) / 16) * 16);
+        $sv1stream = str_pad($sv1stream, $paddedLength, "\x00");
 
         $kSesSDMFileReadEnc = $this->cipher->cmac($sv1stream, $sdmFileReadKey);
         $ive = $this->cipher->encryptECB($readCtr.str_repeat("\x00", 13), $kSesSDMFileReadEnc);
