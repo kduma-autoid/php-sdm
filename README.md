@@ -54,7 +54,7 @@ $isValid = $sdm->validate(
 
 - **[Documentation](DOCUMENTATION.md)** - Detailed usage guide and examples
 - **[API Reference](API.md)** - Complete API documentation
-- **[Example App](EXAMPLE_APP.md)** - Laravel example application guide
+- **[Example App](example-app/README.md)** - Laravel example application guide
 
 ## Requirements
 
@@ -73,7 +73,7 @@ php artisan serve
 
 Visit `http://localhost:8000` for a working demo with WebNFC support.
 
-See [EXAMPLE_APP.md](EXAMPLE_APP.md) for details.
+See [example-app/README.md](example-app/README.md) for details.
 
 ## Development
 

@@ -901,4 +901,4 @@ $cmac = hex2bin('94EED9EE65337086'); // 8 bytes
 
 For usage examples, see [DOCUMENTATION.md](DOCUMENTATION.md).
 
-For the example application, see [EXAMPLE_APP.md](EXAMPLE_APP.md).
+For the example application, see [example-app/README.md](example-app/README.md).

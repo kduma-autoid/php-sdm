@@ -712,4 +712,4 @@ echo json_encode($results, JSON_PRETTY_PRINT);
 
 For API reference, see [API.md](API.md).
 
-For the example Laravel application, see [EXAMPLE_APP.md](EXAMPLE_APP.md).
+For the example Laravel application, see [example-app/README.md](example-app/README.md).
