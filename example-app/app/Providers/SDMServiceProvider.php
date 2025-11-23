@@ -17,7 +17,7 @@ class SDMServiceProvider extends ServiceProvider
     {
         // Register KeyDerivation as a singleton
         $this->app->singleton(KeyDerivation::class, function ($app) {
-            return new KeyDerivation();
+            return new KeyDerivation;
         });
 
         // Register a factory for creating SDM instances
