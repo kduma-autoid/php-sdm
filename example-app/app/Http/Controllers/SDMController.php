@@ -6,7 +6,7 @@ namespace App\Http\Controllers;
 
 use App\Helpers\ParameterParser;
 use App\Http\Responses\ErrorResponse;
-use Illuminate\Http\JsonResponse;
+use App\Http\Responses\ValidResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use KDuma\SDM\Exceptions\DecryptionException;
@@ -48,12 +48,12 @@ class SDMController extends Controller
                 sdmFileReadKey: $this->getMacKey($params['uid'])
             );
 
-            return view('info', [
-                'encryptionMode' => $result['encryption_mode']->value,
+            return new ValidResponse([
+                'encryption_mode' => $result['encryption_mode']->value,
                 'uid' => $result['uid'],
-                'readCtr' => $result['read_ctr'],
-                'fileData' => null,
-                'fileDataUtf8' => null,
+                'read_ctr' => $result['read_ctr'],
+                'file_data' => null,
+                'file_data_utf8' => null,
             ]);
         } catch (ValidationException $e) {
             return new ErrorResponse($e->getMessage(), 403);
@@ -65,7 +65,7 @@ class SDMController extends Controller
     /**
      * Plain SUN message validation (JSON API).
      */
-    public function apiTagPlainText(Request $request): JsonResponse
+    public function apiTagPlainText(Request $request)
     {
         try {
             $params = ParameterParser::parsePlainParams($request);
@@ -79,9 +79,9 @@ class SDMController extends Controller
                 sdmFileReadKey: $this->getMacKey($params['uid'])
             );
 
-            return $this->jsonResponse([
+            return new ValidResponse([
                 'encryption_mode' => $result['encryption_mode']->value,
-                'uid' => bin2hex($result['uid']),
+                'uid' => $result['uid'],
                 'read_ctr' => $result['read_ctr'],
             ]);
         } catch (ValidationException $e) {
@@ -102,7 +102,7 @@ class SDMController extends Controller
     /**
      * SUN message decryption (JSON API).
      */
-    public function apiTag(Request $request): JsonResponse
+    public function apiTag(Request $request)
     {
         return $this->processEncryptedTagApi($request, false);
     }
@@ -118,7 +118,7 @@ class SDMController extends Controller
     /**
      * Tamper-tag SUN message decryption (JSON API).
      */
-    public function apiTagTamper(Request $request): JsonResponse
+    public function apiTagTamper(Request $request)
     {
         return $this->processEncryptedTagApi($request, true);
     }
@@ -152,25 +152,25 @@ class SDMController extends Controller
                 encFileData: $params['enc_file_data']
             );
 
-            $viewData = [
-                'piccDataTag' => $result['picc_data_tag'],
-                'encryptionMode' => $result['encryption_mode']->value,
+            $responseData = [
+                'picc_data_tag' => $result['picc_data_tag'],
+                'encryption_mode' => $result['encryption_mode']->value,
                 'uid' => $result['uid'],
-                'readCtr' => $result['read_ctr'],
-                'fileData' => $result['file_data'],
-                'fileDataUtf8' => $result['file_data'] ? $this->convertToUtf8($result['file_data']) : null,
+                'read_ctr' => $result['read_ctr'],
+                'file_data' => $result['file_data'],
+                'file_data_utf8' => $result['file_data'] ? $this->convertToUtf8($result['file_data']) : null,
             ];
 
             // Add tamper status if this is a tamper tag
             if ($isTamperTag && $result['file_data']) {
                 $tamperInfo = ParameterParser::interpretTamperStatus($result['file_data']);
                 if ($tamperInfo) {
-                    $viewData['tamperStatus'] = $tamperInfo['status'];
-                    $viewData['tamperColor'] = $tamperInfo['color'];
+                    $responseData['tamper_status'] = $tamperInfo['status'];
+                    $responseData['tamper_color'] = $tamperInfo['color'];
                 }
             }
 
-            return view('info', $viewData);
+            return new ValidResponse($responseData);
         } catch (ValidationException $e) {
             return new ErrorResponse($e->getMessage(), 403);
         } catch (DecryptionException $e) {
@@ -185,7 +185,7 @@ class SDMController extends Controller
     /**
      * Process encrypted tag API (common logic for API routes).
      */
-    private function processEncryptedTagApi(Request $request, bool $isTamperTag): JsonResponse
+    private function processEncryptedTagApi(Request $request, bool $isTamperTag)
     {
         try {
             $params = ParameterParser::parseEncryptedParams($request);
@@ -212,16 +212,13 @@ class SDMController extends Controller
             );
 
             $responseData = [
-                'picc_data_tag' => bin2hex($result['picc_data_tag']),
+                'picc_data_tag' => $result['picc_data_tag'],
                 'encryption_mode' => $result['encryption_mode']->value,
-                'uid' => bin2hex($result['uid']),
+                'uid' => $result['uid'],
                 'read_ctr' => $result['read_ctr'],
+                'file_data' => $result['file_data'],
+                'file_data_utf8' => $result['file_data'] ? $this->convertToUtf8($result['file_data']) : null,
             ];
-
-            if ($result['file_data']) {
-                $responseData['file_data'] = bin2hex($result['file_data']);
-                $responseData['file_data_utf8'] = $this->convertToUtf8($result['file_data']);
-            }
 
             // Add tamper status if this is a tamper tag
             if ($isTamperTag && $result['file_data']) {
@@ -231,7 +228,7 @@ class SDMController extends Controller
                 }
             }
 
-            return $this->jsonResponse($responseData);
+            return new ValidResponse($responseData);
         } catch (ValidationException $e) {
             return new ErrorResponse($e->getMessage(), 403);
         } catch (DecryptionException $e) {
@@ -305,11 +302,4 @@ class SDMController extends Controller
         return $kdf->deriveTagKey($masterKey, $uid, 2);
     }
 
-    /**
-     * Return JSON response with pretty printing.
-     */
-    private function jsonResponse(array $data, int $status = 200): JsonResponse
-    {
-        return response()->json($data, $status, [], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
-    }
 }
