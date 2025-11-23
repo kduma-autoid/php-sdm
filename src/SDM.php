@@ -18,6 +18,62 @@ use KDuma\SDM\Exceptions\ValidationException;
  */
 class SDM implements SDMInterface
 {
+    /**
+     * Session Vector 2 prefix for CMAC session key derivation.
+     *
+     * Used in calculateSdmmac() for deriving the CMAC session key.
+     * Format: 0x3C 0xC3 0x00 0x01 0x00 0x80 || PICCData
+     *
+     * @see AN12196 Section 5.3.2 - CMAC Calculation
+     */
+    private const SV2_PREFIX_CMAC = "\x3C\xC3\x00\x01\x00\x80";
+
+    /**
+     * Session Vector 1 prefix for encryption session key derivation.
+     *
+     * Used in decryptFileData() for deriving the encryption session key.
+     * Format: 0xC3 0x3C 0x00 0x01 0x00 0x80 || PICCData
+     *
+     * @see AN12196 Section 5.3.1 - SDMENCFileData Encryption
+     */
+    private const SV1_PREFIX_ENC = "\xC3\x3C\x00\x01\x00\x80";
+
+    /**
+     * PICCDataTag bit mask for UID mirroring enabled flag.
+     *
+     * Bit 7 of PICCDataTag byte indicates if UID is included in the encrypted data.
+     *
+     * @see AN12196 Section 5.2 - PICCDataTag Structure
+     */
+    private const PICC_UID_MIRROR_MASK = 0x80;
+
+    /**
+     * PICCDataTag bit mask for SDMReadCtr enabled flag.
+     *
+     * Bit 6 of PICCDataTag byte indicates if read counter is included in the encrypted data.
+     *
+     * @see AN12196 Section 5.2 - PICCDataTag Structure
+     */
+    private const PICC_READ_CTR_MASK = 0x40;
+
+    /**
+     * PICCDataTag bit mask for UID length.
+     *
+     * Bits 0-3 of PICCDataTag byte contain the UID length.
+     *
+     * @see AN12196 Section 5.2 - PICCDataTag Structure
+     */
+    private const PICC_UID_LENGTH_MASK = 0x0F;
+
+    /**
+     * Expected UID length for NTAG 424 DNA.
+     *
+     * NTAG 424 DNA uses 7-byte UIDs (single size).
+     *
+     * @see AN12196 Section 3.1 - UID
+     */
+    private const PICC_SUPPORTED_UID_LENGTH = 0x07;
+
     private AESCipher $cipher;
 
     public function __construct(
@@ -95,8 +151,8 @@ class SDM implements SDMInterface
             $inputBuf .= strtoupper(bin2hex($encFileData)).$sdmmacParamText;
         }
 
-        // AES mode
-        $sv2stream = "\x3C\xC3\x00\x01\x00\x80".$piccData;
+        // AES mode - derive CMAC session key using SV2
+        $sv2stream = self::SV2_PREFIX_CMAC.$piccData;
 
         // Zero padding till the end of the block
         while (0 !== strlen($sv2stream) % 16) {
@@ -141,8 +197,8 @@ class SDM implements SDMInterface
             throw new \RuntimeException('LRP mode is not supported');
         }
 
-        // AES mode
-        $sv1stream = "\xC3\x3C\x00\x01\x00\x80".$piccData;
+        // AES mode - derive encryption session key using SV1
+        $sv1stream = self::SV1_PREFIX_ENC.$piccData;
 
         // Zero padding till the end of the block
         while (0 !== strlen($sv1stream) % 16) {
@@ -269,10 +325,11 @@ class SDM implements SDMInterface
         // AES mode - decrypt using CBC with zero IV
         $plaintext = $this->cipher->decrypt($piccEncData, $sdmMetaReadKey, str_repeat("\x00", 16));
 
+        // Parse PICCDataTag byte to extract configuration flags and UID length
         $piccDataTag = $plaintext[0];
-        $uidMirroringEn = (ord($piccDataTag) & 0x80) === 0x80;
-        $sdmReadCtrEn = (ord($piccDataTag) & 0x40) === 0x40;
-        $uidLength = ord($piccDataTag) & 0x0F;
+        $uidMirroringEn = (ord($piccDataTag) & self::PICC_UID_MIRROR_MASK) === self::PICC_UID_MIRROR_MASK;
+        $sdmReadCtrEn = (ord($piccDataTag) & self::PICC_READ_CTR_MASK) === self::PICC_READ_CTR_MASK;
+        $uidLength = ord($piccDataTag) & self::PICC_UID_LENGTH_MASK;
 
         $uid = null;
         $readCtr = null;
@@ -281,8 +338,8 @@ class SDM implements SDMInterface
         $dataStream = '';
         $offset = 1;
 
-        // So far this is the only length mentioned by datasheet
-        if (0x07 !== $uidLength) {
+        // Validate UID length - only 7-byte UIDs are supported by NTAG 424 DNA
+        if (self::PICC_SUPPORTED_UID_LENGTH !== $uidLength) {
             // Fake SDMMAC calculation to avoid potential timing attacks
             $this->calculateSdmmac($paramMode, $sdmFileReadKey(str_repeat("\x00", 7)), str_repeat("\x00", 10), $encFileData, $mode);
 
