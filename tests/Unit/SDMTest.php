@@ -4,15 +4,25 @@ declare(strict_types=1);
 
 namespace KDuma\SDM\Tests\Unit;
 
+use KDuma\SDM\Cipher\AESCipher;
+use KDuma\SDM\EncMode;
 use KDuma\SDM\Exceptions\DecryptionException;
+use KDuma\SDM\Exceptions\ValidationException;
+use KDuma\SDM\ParamMode;
 use KDuma\SDM\SDM;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
 
 /**
  * @internal
  */
 #[CoversClass(SDM::class)]
+#[UsesClass(AESCipher::class)]
+#[UsesClass(EncMode::class)]
+#[UsesClass(ParamMode::class)]
+#[UsesClass(DecryptionException::class)]
+#[UsesClass(ValidationException::class)]
 final class SDMTest extends TestCase
 {
     public function testCanBeInstantiated(): void
