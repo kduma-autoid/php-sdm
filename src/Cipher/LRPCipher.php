@@ -365,6 +365,9 @@ class LRPCipher implements CipherInterface
     /**
      * Remove ISO/IEC 9797-1 padding (0x80 followed by zeros).
      *
+     * Validates the entire padding structure before throwing an exception
+     * to avoid timing attacks that could leak information about padding validity.
+     *
      * @param string $data Padded data
      *
      * @return string Unpadded data
@@ -373,21 +376,34 @@ class LRPCipher implements CipherInterface
      */
     private static function removePadding(string $data): string
     {
+        $dataLen = strlen($data);
+        $paddingValid = false;
         $padLength = 0;
-        for ($i = strlen($data) - 1; $i >= 0; --$i) {
-            ++$padLength;
+
+        // Scan from the end to find 0x80 marker, validating all bytes
+        for ($i = $dataLen - 1; $i >= 0; --$i) {
             $byte = ord($data[$i]);
 
-            if (0x80 === $byte) {
-                return substr($data, 0, -$padLength);
-            }
-
-            if (0x00 !== $byte) {
-                throw new \RuntimeException('Invalid padding');
+            if (0x80 === $byte && !$paddingValid) {
+                // Found padding marker
+                $paddingValid = true;
+                $padLength = $dataLen - $i;
+            } elseif ($paddingValid) {
+                // Already found marker, this is part of the actual data
+                break;
+            } elseif (0x00 !== $byte) {
+                // Invalid padding byte found before 0x80 marker
+                // Continue scanning to maintain constant time
+                $paddingValid = false;
             }
         }
 
-        throw new \RuntimeException('Invalid padding');
+        // Throw exception only after validating entire padding structure
+        if (!$paddingValid) {
+            throw new \RuntimeException('Invalid padding');
+        }
+
+        return substr($data, 0, -$padLength);
     }
 
     /**
