@@ -8,29 +8,12 @@ use App\Helpers\ParameterParser;
 use App\Http\Responses\ErrorResponse;
 use App\Http\Responses\ValidResponse;
 use Illuminate\Http\Request;
-use Illuminate\View\View;
 use KDuma\SDM\Exceptions\DecryptionException;
 use KDuma\SDM\Exceptions\ValidationException;
 use KDuma\SDM\SDM;
 
 class SDMController extends Controller
 {
-    /**
-     * Main landing page.
-     */
-    public function index(): View
-    {
-        return view('main');
-    }
-
-    /**
-     * WebNFC interface page.
-     */
-    public function webnfc(): View
-    {
-        return view('webnfc');
-    }
-
     /**
      * Plain SUN message validation (HTML).
      */

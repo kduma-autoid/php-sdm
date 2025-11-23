@@ -4,10 +4,10 @@ use App\Http\Controllers\SDMController;
 use Illuminate\Support\Facades\Route;
 
 // Main page
-Route::get('/', [SDMController::class, 'index']);
+Route::view('/', 'main');
 
 // WebNFC interface
-Route::get('/webnfc', [SDMController::class, 'webnfc']);
+Route::view('/webnfc', 'webnfc');
 
 // Plain SUN message validation
 Route::get('/tagpt', [SDMController::class, 'tagPlainText']);
