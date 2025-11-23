@@ -154,29 +154,47 @@ return [
 
 ### Route Definitions
 
-**File:** `example-app/routes/web.php`
+**Web Routes File:** `example-app/routes/web.php`
 
 ```php
-use App\Http\Controllers\SDMController;
+use App\Http\Controllers\TagController;
+use App\Http\Controllers\TagPlainTextController;
+use App\Http\Controllers\TagTamperController;
 
 // Main page
-Route::get('/', [SDMController::class, 'index']);
+Route::view('/', 'main');
 
 // WebNFC interface
-Route::get('/webnfc', [SDMController::class, 'webnfc']);
+Route::view('/webnfc', 'webnfc');
 
 // Plain SUN message validation
-Route::get('/tagpt', [SDMController::class, 'tagPlainText']);
-Route::get('/api/tagpt', [SDMController::class, 'apiTagPlainText']);
+Route::get('/tagpt', TagPlainTextController::class);
 
 // SUN message decryption
-Route::get('/tag', [SDMController::class, 'tag']);
-Route::get('/api/tag', [SDMController::class, 'apiTag']);
+Route::get('/tag', TagController::class);
 
 // Tamper-tag SUN message decryption
-Route::get('/tagtt', [SDMController::class, 'tagTamper']);
-Route::get('/api/tagtt', [SDMController::class, 'apiTagTamper']);
+Route::get('/tagtt', TagTamperController::class);
 ```
+
+**API Routes File:** `example-app/routes/api.php`
+
+```php
+use App\Http\Controllers\TagController;
+use App\Http\Controllers\TagPlainTextController;
+use App\Http\Controllers\TagTamperController;
+
+// Plain SUN message validation
+Route::get('/tagpt', TagPlainTextController::class);
+
+// SUN message decryption
+Route::get('/tag', TagController::class);
+
+// Tamper-tag SUN message decryption
+Route::get('/tagtt', TagTamperController::class);
+```
+
+**Note:** All controllers are invokable (single `__invoke()` method), and API routes automatically return JSON via middleware.
 
 ## Usage Examples
 
@@ -326,49 +344,139 @@ curl "http://localhost:8000/api/tag?picc_data=INVALID&cmac=94EED9EE65337086"
 
 ## Architecture
 
+The example application follows modern Laravel best practices with a clean, maintainable architecture.
+
+### Design Principles
+
+1. **Invokable Controllers** - Each controller has a single responsibility via the `__invoke()` method
+2. **Responsable Pattern** - Response objects handle both JSON and HTML output automatically
+3. **Controller Inheritance** - Common functionality in `BaseSDMController` prevents code duplication
+4. **Middleware for API Routes** - `ForceJsonResponseMiddleware` ensures API routes always return JSON
+5. **Separated Route Files** - Web and API routes in separate files for clarity
+6. **Static Routes** - Simple pages use `Route::view()` instead of controllers
+
+### Key Architectural Features
+
+**Automatic Response Format Detection:**
+- Controllers return `ValidResponse` or `ErrorResponse` objects
+- Response objects check `$request->wantsJson()` to determine output format
+- Binary data automatically converted to hex for JSON, kept binary for HTML views
+- Keys automatically converted to camelCase for Blade views
+
+**Controller Hierarchy:**
+```
+BaseSDMController (abstract)
+    ├─ TagPlainTextController (invokable)
+    ├─ TagController (invokable)
+    │   └─ TagTamperController (invokable, extends TagController)
+```
+
+**Response Flow:**
+- Controllers catch exceptions and return `ErrorResponse` with appropriate status codes
+- Successful operations return `ValidResponse` with decrypted data
+- Response objects handle all formatting logic
+
 ### Directory Structure
 
 ```
 example-app/
 ├── app/
 │   ├── Helpers/
-│   │   └── ParameterParser.php      # URL parameter parsing
+│   │   └── ParameterParser.php             # URL parameter parsing
 │   ├── Http/
-│   │   └── Controllers/
-│   │       └── SDMController.php    # Main controller
+│   │   ├── Controllers/
+│   │   │   ├── BaseSDMController.php       # Abstract base controller
+│   │   │   ├── TagController.php           # Encrypted SUN handler
+│   │   │   ├── TagPlainTextController.php  # Plain SUN handler
+│   │   │   └── TagTamperController.php     # Tamper-tag handler
+│   │   ├── Middleware/
+│   │   │   └── ForceJsonResponseMiddleware.php  # API JSON middleware
+│   │   └── Responses/
+│   │       ├── ValidResponse.php           # Success response handler
+│   │       └── ErrorResponse.php           # Error response handler
 │   └── Providers/
-│       └── SDMServiceProvider.php   # Key derivation service
+│       └── SDMServiceProvider.php          # Key derivation service
 ├── config/
-│   └── sdm.php                      # SDM configuration
+│   └── sdm.php                             # SDM configuration
 ├── resources/
 │   └── views/
 │       ├── layouts/
-│       │   └── app.blade.php        # Base layout
-│       ├── main.blade.php           # Landing page
-│       ├── info.blade.php           # Result display
-│       ├── error.blade.php          # Error display
-│       └── webnfc.blade.php         # WebNFC interface
+│       │   └── app.blade.php               # Base layout
+│       ├── main.blade.php                  # Landing page
+│       ├── info.blade.php                  # Result display
+│       ├── error.blade.php                 # Error display
+│       └── webnfc.blade.php                # WebNFC interface
 └── routes/
-    └── web.php                      # Route definitions
+    ├── web.php                             # Web route definitions
+    └── api.php                             # API route definitions
 ```
 
 ### Key Components
 
-#### SDMController
+#### BaseSDMController
 
-**File:** `app/Http/Controllers/SDMController.php`
+**File:** `app/Http/Controllers/BaseSDMController.php`
 
-Main controller handling all SDM operations.
+Abstract base controller providing common functionality for all SDM controllers.
 
-**Methods:**
-- `index()` - Landing page
-- `webnfc()` - WebNFC interface
-- `tagPlainText()` - Plain SUN validation (HTML)
-- `apiTagPlainText()` - Plain SUN validation (JSON)
-- `tag()` - Encrypted SUN decryption (HTML)
-- `apiTag()` - Encrypted SUN decryption (JSON)
-- `tagTamper()` - Tamper-tag decryption (HTML)
-- `apiTagTamper()` - Tamper-tag decryption (JSON)
+**Protected Methods:**
+- `getSDM(?string $uid)` - Get SDM instance from factory
+- `getMasterKey()` - Get master key from configuration
+- `getEncKey()` - Derive encryption key for PICC data
+- `getMacKey(string $uid)` - Derive MAC key for specific UID
+
+#### TagController
+
+**File:** `app/Http/Controllers/TagController.php`
+
+Invokable controller handling encrypted SUN message decryption (routes `/tag` and `/api/tag`).
+
+**Method:**
+- `__invoke(Request)` - Process encrypted SUN messages, decrypt data, return response
+
+**Protected Methods:**
+- `isTamperTag()` - Returns false (overridden in TagTamperController)
+- `convertToUtf8(string)` - Convert binary data to UTF-8 safely
+
+#### TagPlainTextController
+
+**File:** `app/Http/Controllers/TagPlainTextController.php`
+
+Invokable controller handling plain SUN message validation (routes `/tagpt` and `/api/tagpt`).
+
+**Method:**
+- `__invoke(Request)` - Validate plain SUN messages with CMAC
+
+#### TagTamperController
+
+**File:** `app/Http/Controllers/TagTamperController.php`
+
+Invokable controller extending TagController for tamper-tag handling (routes `/tagtt` and `/api/tagtt`).
+
+**Method:**
+- `isTamperTag()` - Overrides parent to return true, enabling tamper status interpretation
+
+#### ValidResponse
+
+**File:** `app/Http/Responses/ValidResponse.php`
+
+Responsable class for successful SDM operations, automatically handles JSON and HTML responses.
+
+**Features:**
+- Converts binary fields to hex for JSON responses
+- Converts snake_case keys to camelCase for Blade views
+- Returns appropriate response based on request Accept header
+
+#### ErrorResponse
+
+**File:** `app/Http/Responses/ErrorResponse.php`
+
+Responsable class for error responses, automatically handles JSON and HTML responses.
+
+**Features:**
+- Returns JSON with error message for API requests
+- Returns error Blade view for web requests
+- Supports custom HTTP status codes
 
 #### ParameterParser
 
@@ -376,7 +484,7 @@ Main controller handling all SDM operations.
 
 Parses and validates URL parameters.
 
-**Methods:**
+**Static Methods:**
 - `parsePlainParams(Request)` - Parse plain SUN parameters
 - `parseEncryptedParams(Request)` - Parse encrypted SUN parameters
 - `interpretTamperStatus(string)` - Interpret tamper tag file data
@@ -390,6 +498,12 @@ Service provider for key derivation and SDM instance creation.
 **Provides:**
 - `KeyDerivation` singleton
 - `sdm.factory` - Factory callable for creating SDM instances
+
+#### ForceJsonResponseMiddleware
+
+**File:** `app/Http/Middleware/ForceJsonResponseMiddleware.php`
+
+Middleware that forces JSON responses for API routes by setting the Accept header.
 
 ### Key Derivation Flow
 
@@ -420,15 +534,26 @@ $result = $sdm->decryptSunMessage(
 ```
 Client Request
     ↓
-Route (web.php)
+Route (web.php or api.php)
     ↓
-SDMController
+[API: ForceJsonResponseMiddleware]
+    ↓
+Invokable Controller
+  (TagController / TagPlainTextController / TagTamperController)
     ↓
 ParameterParser (validate & parse)
     ↓
+BaseSDMController (key derivation)
+    ↓
 SDM Library (decrypt/validate)
     ↓
-Response (HTML or JSON)
+Responsable Object
+  (ValidResponse or ErrorResponse)
+    ↓
+  Checks request->wantsJson()
+    ↓
+  ├─ JSON: Convert binary to hex, return JSON
+  └─ HTML: Convert keys to camelCase, render Blade view
 ```
 
 ## WebNFC Interface
