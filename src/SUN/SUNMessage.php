@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace KDuma\SDM\SUN;
 
 /**
- * SUN (Secure Unique NFC) message structure
+ * SUN (Secure Unique NFC) message structure.
  */
 class SUNMessage
 {
@@ -13,8 +13,7 @@ class SUNMessage
         private readonly string $encPICCData,
         private readonly string $encFileData,
         private readonly string $cmac,
-    ) {
-    }
+    ) {}
 
     public function getEncPICCData(): string
     {
@@ -32,10 +31,9 @@ class SUNMessage
     }
 
     /**
-     * Parse SUN message from URL parameters
+     * Parse SUN message from URL parameters.
      *
      * @param array<string, string> $params URL parameters
-     * @return self
      */
     public static function fromUrlParams(array $params): self
     {

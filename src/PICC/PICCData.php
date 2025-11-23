@@ -5,15 +5,14 @@ declare(strict_types=1);
 namespace KDuma\SDM\PICC;
 
 /**
- * PICC (Proximity Integrated Circuit Card) data structure
+ * PICC (Proximity Integrated Circuit Card) data structure.
  */
 class PICCData
 {
     public function __construct(
         private readonly string $uid,
         private readonly int $readCounter,
-    ) {
-    }
+    ) {}
 
     public function getUid(): string
     {
@@ -26,10 +25,9 @@ class PICCData
     }
 
     /**
-     * Parse encrypted PICC data
+     * Parse encrypted PICC data.
      *
      * @param string $encryptedData Encrypted PICC data
-     * @return self
      */
     public static function fromEncrypted(string $encryptedData): self
     {

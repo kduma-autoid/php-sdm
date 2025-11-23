@@ -5,35 +5,38 @@ declare(strict_types=1);
 namespace KDuma\SDM\Cipher;
 
 /**
- * Interface for cryptographic operations
+ * Interface for cryptographic operations.
  */
 interface CipherInterface
 {
     /**
-     * Encrypt data
+     * Encrypt data.
      *
      * @param string $data Data to encrypt
-     * @param string $key Encryption key
-     * @param string $iv Initialization vector
+     * @param string $key  Encryption key
+     * @param string $iv   Initialization vector
+     *
      * @return string Encrypted data
      */
     public function encrypt(string $data, string $key, string $iv): string;
 
     /**
-     * Decrypt data
+     * Decrypt data.
      *
      * @param string $data Data to decrypt
-     * @param string $key Decryption key
-     * @param string $iv Initialization vector
+     * @param string $key  Decryption key
+     * @param string $iv   Initialization vector
+     *
      * @return string Decrypted data
      */
     public function decrypt(string $data, string $key, string $iv): string;
 
     /**
-     * Generate CMAC
+     * Generate CMAC.
      *
      * @param string $data Data to authenticate
-     * @param string $key MAC key
+     * @param string $key  MAC key
+     *
      * @return string CMAC value
      */
     public function cmac(string $data, string $key): string;

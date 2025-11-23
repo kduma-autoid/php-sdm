@@ -4,173 +4,163 @@ declare(strict_types=1);
 
 namespace KDuma\SDM\Cipher;
 
-use KDuma\SDM\Exceptions\DecryptionException;
-
 /**
- * AES cipher implementation for NTAG DNA 424
+ * AES cipher implementation for NTAG DNA 424.
  */
 class AESCipher implements CipherInterface
 {
-    /**
-     * {@inheritdoc}
-     */
     public function encrypt(string $data, string $key, string $iv): string
     {
-        $encrypted = openssl_encrypt(
-            $data,
-            'aes-128-cbc',
-            $key,
-            OPENSSL_RAW_DATA | OPENSSL_ZERO_PADDING,
-            $iv
-        );
-
-        if ($encrypted === false) {
-            throw new DecryptionException('AES encryption failed');
-        }
-
-        return $encrypted;
+        // TODO: Implementation
+        throw new \RuntimeException('Not implemented yet');
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function decrypt(string $data, string $key, string $iv): string
     {
-        $decrypted = openssl_decrypt(
-            $data,
-            'aes-128-cbc',
-            $key,
-            OPENSSL_RAW_DATA | OPENSSL_ZERO_PADDING,
-            $iv
-        );
-
-        if ($decrypted === false) {
-            throw new DecryptionException('AES decryption failed');
-        }
-
-        return $decrypted;
+        // TODO: Implementation
+        throw new \RuntimeException('Not implemented yet');
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function cmac(string $data, string $key): string
     {
-        // AES-CMAC implementation based on NIST SP 800-38B
-        // Constants for CMAC
-        $const_Rb = "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x87";
-        $blockSize = 16;
+        $blockSize = 16; // AES block size in bytes
 
         // Generate subkeys
-        $L = $this->encrypt(str_repeat("\x00", $blockSize), $key, str_repeat("\x00", $blockSize));
-        $K1 = $this->leftShift($L);
-        if (ord($L[0]) & 0x80) {
-            $K1 = $this->xorStrings($K1, $const_Rb);
-        }
+        [$k1, $k2] = $this->generateSubkeys($key, $blockSize);
 
-        $K2 = $this->leftShift($K1);
-        if (ord($K1[0]) & 0x80) {
-            $K2 = $this->xorStrings($K2, $const_Rb);
-        }
+        // Prepare the last block
+        $length = strlen($data);
 
-        // Pad data if necessary
-        $dataLength = strlen($data);
-
-        // Determine if we need to pad
-        $isComplete = ($dataLength > 0) && ($dataLength % $blockSize === 0);
-
-        if ($isComplete) {
-            // Data is a non-zero multiple of block size
-            $numBlocks = $dataLength / $blockSize;
+        if (0 === $length) {
+            // Empty message: use padded empty block
+            $numBlocks = 1;
+            $lastBlock = $this->pad('', $blockSize);
+            $lastBlock = $this->xorStrings($lastBlock, $k2);
         } else {
-            // Data is empty or not a multiple of block size - will need padding
-            $numBlocks = (int) ceil($dataLength / $blockSize);
-            if ($numBlocks === 0) {
-                $numBlocks = 1;
+            $numBlocks = (int) ceil($length / $blockSize);
+            $lastBlockComplete = (0 === $length % $blockSize);
+
+            if ($lastBlockComplete) {
+                $lastBlock = substr($data, ($numBlocks - 1) * $blockSize, $blockSize);
+                $lastBlock = $this->xorStrings($lastBlock, $k1);
+            } else {
+                $lastBlock = substr($data, ($numBlocks - 1) * $blockSize);
+                $lastBlock = $this->pad($lastBlock, $blockSize);
+                $lastBlock = $this->xorStrings($lastBlock, $k2);
             }
         }
 
-        // Process all complete blocks except the last
-        $Y = str_repeat("\x00", $blockSize);
+        // Process blocks
+        $x = str_repeat("\x00", $blockSize);
 
-        for ($i = 0; $i < $numBlocks - 1; $i++) {
+        for ($i = 0; $i < $numBlocks - 1; ++$i) {
             $block = substr($data, $i * $blockSize, $blockSize);
-            $Y = $this->xorStrings($Y, $block);
-            $Y = $this->encrypt($Y, $key, str_repeat("\x00", $blockSize));
+            $x = $this->xorStrings($x, $block);
+            $encrypted = openssl_encrypt($x, 'AES-128-ECB', $key, OPENSSL_RAW_DATA | OPENSSL_NO_PADDING);
+
+            if (false === $encrypted) {
+                throw new \RuntimeException('Failed to encrypt data during CMAC calculation');
+            }
+
+            $x = $encrypted;
         }
 
-        // Process last block
-        if ($isComplete) {
-            // Last block is complete - XOR with K1
-            $lastBlock = substr($data, ($numBlocks - 1) * $blockSize, $blockSize);
-            $lastBlock = $this->xorStrings($lastBlock, $K1);
-        } else {
-            // Last block is incomplete or empty - pad with 10...0 and XOR with K2
-            $lastBlock = substr($data, ($numBlocks - 1) * $blockSize);
-            $lastBlock .= "\x80" . str_repeat("\x00", $blockSize - strlen($lastBlock) - 1);
-            $lastBlock = $this->xorStrings($lastBlock, $K2);
-        }
+        $x = $this->xorStrings($x, $lastBlock);
+        $mac = openssl_encrypt($x, 'AES-128-ECB', $key, OPENSSL_RAW_DATA | OPENSSL_NO_PADDING);
 
-        $Y = $this->xorStrings($Y, $lastBlock);
-        $mac = $this->encrypt($Y, $key, str_repeat("\x00", $blockSize));
+        if (false === $mac) {
+            throw new \RuntimeException('Failed to generate CMAC');
+        }
 
         return $mac;
     }
 
     /**
-     * Derive a key using AES-based key derivation
+     * Generate CMAC subkeys K1 and K2.
      *
-     * @param string $masterKey Master key for derivation
-     * @param string $diversificationInput Diversification input
-     * @return string Derived key
+     * @return array{0: string, 1: string}
      */
-    public function deriveKey(string $masterKey, string $diversificationInput): string
+    private function generateSubkeys(string $key, int $blockSize): array
     {
-        // Pad diversification input to 16 bytes
-        $input = str_pad($diversificationInput, 16, "\x00");
+        // L = AES-128(K, 0^128)
+        $zero = str_repeat("\x00", $blockSize);
+        $l = openssl_encrypt($zero, 'AES-128-ECB', $key, OPENSSL_RAW_DATA | OPENSSL_NO_PADDING);
 
-        // Use CMAC for key derivation
-        return $this->cmac($input, $masterKey);
-    }
-
-    /**
-     * Left shift a byte string by one bit
-     *
-     * @param string $data Data to shift
-     * @return string Shifted data
-     */
-    private function leftShift(string $data): string
-    {
-        $result = '';
-        $overflow = 0;
-
-        for ($i = strlen($data) - 1; $i >= 0; $i--) {
-            $byte = ord($data[$i]);
-            $result = chr(($byte << 1 | $overflow) & 0xFF) . $result;
-            $overflow = ($byte & 0x80) ? 1 : 0;
+        if (false === $l) {
+            throw new \RuntimeException('Failed to encrypt data for CMAC subkey generation');
         }
 
-        return $result;
+        // K1 = L << 1
+        $k1 = $this->leftShift($l);
+
+        // If MSB(L) = 1, K1 = K1 XOR Rb
+        if ((ord($l[0]) & 0x80) !== 0) {
+            $k1 = $this->xorStrings($k1, $this->getRb($blockSize));
+        }
+
+        // K2 = K1 << 1
+        $k2 = $this->leftShift($k1);
+
+        // If MSB(K1) = 1, K2 = K2 XOR Rb
+        if ((ord($k1[0]) & 0x80) !== 0) {
+            $k2 = $this->xorStrings($k2, $this->getRb($blockSize));
+        }
+
+        return [$k1, $k2];
     }
 
     /**
-     * XOR two byte strings
+     * Left shift one bit.
+     */
+    private function leftShift(string $input): string
+    {
+        $length = strlen($input);
+        $output = '';
+        $carry = 0;
+
+        for ($i = $length - 1; $i >= 0; --$i) {
+            $byte = ord($input[$i]);
+            $output = chr((($byte << 1) | $carry) & 0xFF).$output;
+            $carry = ($byte & 0x80) ? 1 : 0;
+        }
+
+        return $output;
+    }
+
+    /**
+     * XOR two strings of equal length.
      *
-     * @param string $a First string
-     * @param string $b Second string
-     * @return string XORed result
+     * @throws \InvalidArgumentException if strings have different lengths
      */
     private function xorStrings(string $a, string $b): string
     {
-        $length = max(strlen($a), strlen($b));
-        $a = str_pad($a, $length, "\x00");
-        $b = str_pad($b, $length, "\x00");
+        $lengthA = strlen($a);
+        $lengthB = strlen($b);
 
-        $result = '';
-        for ($i = 0; $i < $length; $i++) {
-            $result .= chr(ord($a[$i]) ^ ord($b[$i]));
+        if ($lengthA !== $lengthB) {
+            throw new \InvalidArgumentException(
+                sprintf('Cannot XOR strings of different lengths: %d vs %d bytes', $lengthA, $lengthB),
+            );
         }
 
-        return $result;
+        return $a ^ $b;
+    }
+
+    /**
+     * Pad the input according to CMAC specification (10* padding).
+     */
+    private function pad(string $input, int $blockSize): string
+    {
+        $padLength = $blockSize - strlen($input);
+
+        return $input."\x80".str_repeat("\x00", $padLength - 1);
+    }
+
+    /**
+     * Get Rb constant for CMAC (0x87 for AES-128).
+     */
+    private function getRb(int $blockSize): string
+    {
+        return str_repeat("\x00", $blockSize - 1)."\x87";
     }
 }
