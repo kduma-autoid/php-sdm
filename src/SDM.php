@@ -89,7 +89,7 @@ class SDM implements SDMInterface
         return $this->decryptSunMessage(
             paramMode: ParamMode::SEPARATED,
             sdmMetaReadKey: $this->encKey,
-            sdmFileReadKey: fn () => $this->macKey,
+            sdmFileReadKey: fn (string $uid) => $this->macKey,
             piccEncData: $encData,
             sdmmac: $cmac,
             encFileData: $encFileData,
