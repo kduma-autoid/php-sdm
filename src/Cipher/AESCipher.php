@@ -65,23 +65,39 @@ class AESCipher implements CipherInterface
         for ($i = 0; $i < $numBlocks - 1; $i++) {
             $block = substr($data, $i * $blockSize, $blockSize);
             $x = $this->xorStrings($x, $block);
-            $x = openssl_encrypt($x, 'AES-128-ECB', $key, OPENSSL_RAW_DATA | OPENSSL_NO_PADDING);
+            $encrypted = openssl_encrypt($x, 'AES-128-ECB', $key, OPENSSL_RAW_DATA | OPENSSL_NO_PADDING);
+
+            if ($encrypted === false) {
+                throw new \RuntimeException('Failed to encrypt data during CMAC calculation');
+            }
+
+            $x = $encrypted;
         }
 
         $x = $this->xorStrings($x, $lastBlock);
         $mac = openssl_encrypt($x, 'AES-128-ECB', $key, OPENSSL_RAW_DATA | OPENSSL_NO_PADDING);
+
+        if ($mac === false) {
+            throw new \RuntimeException('Failed to generate CMAC');
+        }
 
         return $mac;
     }
 
     /**
      * Generate CMAC subkeys K1 and K2
+     *
+     * @return array{0: string, 1: string}
      */
     private function generateSubkeys(string $key, int $blockSize): array
     {
         // L = AES-128(K, 0^128)
         $zero = str_repeat("\x00", $blockSize);
         $l = openssl_encrypt($zero, 'AES-128-ECB', $key, OPENSSL_RAW_DATA | OPENSSL_NO_PADDING);
+
+        if ($l === false) {
+            throw new \RuntimeException('Failed to encrypt data for CMAC subkey generation');
+        }
 
         // K1 = L << 1
         $k1 = $this->leftShift($l);

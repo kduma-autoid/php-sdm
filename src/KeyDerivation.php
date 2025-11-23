@@ -45,6 +45,10 @@ class KeyDerivation
         // Derive key using HMAC-SHA256 with DIV_CONST1
         $divConst1 = hex2bin(self::DIV_CONST1);
 
+        if ($divConst1 === false) {
+            throw new \RuntimeException('Failed to decode DIV_CONST1');
+        }
+
         // HMAC-SHA256 and truncate to 16 bytes
         $hmac = hash_hmac('sha256', $divConst1, $masterKey, true);
 
@@ -68,11 +72,20 @@ class KeyDerivation
 
         // Step 1: Derive CMAC key using HMAC-SHA256 with DIV_CONST2 + key_no
         $divConst2 = hex2bin(self::DIV_CONST2);
+
+        if ($divConst2 === false) {
+            throw new \RuntimeException('Failed to decode DIV_CONST2');
+        }
+
         $cmacKey = hash_hmac('sha256', $divConst2 . chr($keyNumber), $masterKey, true);
         $cmacKey = substr($cmacKey, 0, 16);
 
         // Step 2: Nested HMAC operations for UID diversification
         $divConst3 = hex2bin(self::DIV_CONST3);
+
+        if ($divConst3 === false) {
+            throw new \RuntimeException('Failed to decode DIV_CONST3');
+        }
 
         // HMAC-SHA256(master_key, DIV_CONST3) - full 32 bytes, not truncated
         $hmac2 = hash_hmac('sha256', $divConst3, $masterKey, true);
