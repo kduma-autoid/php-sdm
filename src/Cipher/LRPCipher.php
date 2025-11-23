@@ -68,8 +68,10 @@ class LRPCipher implements CipherInterface
      *
      * @param string $key        Secret key (16 bytes)
      * @param int    $updateMode Updated key index to use (0-3)
-     * @param string $counter    Initial counter/IV value (default: 16 zero bytes, variable length supported)
+     * @param string $counter    Initial counter/IV value (1-16 bytes, default: 16 zero bytes)
      * @param bool   $usePadding Whether to use padding (default: true)
+     *
+     * @throws \InvalidArgumentException if key is not 16 bytes, counter is empty, or counter exceeds 16 bytes
      */
     public function __construct(
         string $key,
@@ -89,6 +91,13 @@ class LRPCipher implements CipherInterface
 
         if (0 === strlen($this->counter)) {
             throw new \InvalidArgumentException('Counter must not be empty');
+        }
+
+        if (strlen($this->counter) > 16) {
+            throw new \InvalidArgumentException(sprintf(
+                'Counter must not exceed 16 bytes, got %d bytes',
+                strlen($this->counter)
+            ));
         }
 
         $this->usePadding = $usePadding;
@@ -303,14 +312,21 @@ class LRPCipher implements CipherInterface
     /**
      * Set the counter value.
      *
-     * @param string $counter New counter value (variable length, must not be empty)
+     * @param string $counter New counter value (1-16 bytes)
      *
-     * @throws \InvalidArgumentException if counter is empty
+     * @throws \InvalidArgumentException if counter is empty or exceeds 16 bytes
      */
     public function setCounter(string $counter): void
     {
         if (0 === strlen($counter)) {
             throw new \InvalidArgumentException('Counter must not be empty');
+        }
+
+        if (strlen($counter) > 16) {
+            throw new \InvalidArgumentException(sprintf(
+                'Counter must not exceed 16 bytes, got %d bytes',
+                strlen($counter)
+            ));
         }
 
         $this->counter = $counter;

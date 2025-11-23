@@ -502,23 +502,63 @@ class LRPTest extends TestCase
     }
 
     /**
-     * Test variable-length counters (6 and 8 bytes as used in SDM).
+     * Test variable-length counters (1-16 bytes supported).
      */
     public function testVariableLengthCounters(): void
     {
         $key = hex2bin('00000000000000000000000000000000');
 
         // 6-byte counter (as used in SDM for read counter)
-        $cipher6 = new LRPCipher($key, 0, "\x00\x00\x00\x00\x00\x00");
+        $cipher6 = new LRPCipher($key, 0, "\x01\x02\x03\x04\x05\x06");
         $this->assertSame(6, strlen($cipher6->getCounter()));
+        $this->assertSame("\x01\x02\x03\x04\x05\x06", $cipher6->getCounter());
 
         // 8-byte counter (as used in SDM for PICC random)
-        $cipher8 = new LRPCipher($key, 0, str_repeat("\x00", 8));
+        $cipher8 = new LRPCipher($key, 0, "\x01\x02\x03\x04\x05\x06\x07\x08");
         $this->assertSame(8, strlen($cipher8->getCounter()));
+        $this->assertSame("\x01\x02\x03\x04\x05\x06\x07\x08", $cipher8->getCounter());
 
-        // Variable-length counter via setCounter
+        // 4-byte counter via setCounter
         $cipher = new LRPCipher($key, 0);
         $cipher->setCounter("\x01\x02\x03\x04");
         $this->assertSame(4, strlen($cipher->getCounter()));
+        $this->assertSame("\x01\x02\x03\x04", $cipher->getCounter());
+
+        // 16-byte counter
+        $cipher16 = new LRPCipher($key, 0, str_repeat("\xFF", 16));
+        $this->assertSame(16, strlen($cipher16->getCounter()));
+        $this->assertSame(str_repeat("\xFF", 16), $cipher16->getCounter());
+
+        // 1-byte counter (minimum)
+        $cipher1 = new LRPCipher($key, 0, "\xAA");
+        $this->assertSame(1, strlen($cipher1->getCounter()));
+        $this->assertSame("\xAA", $cipher1->getCounter());
+    }
+
+    /**
+     * Test counter exceeding 16 bytes throws exception.
+     */
+    public function testCounterTooLong(): void
+    {
+        $key = hex2bin('00000000000000000000000000000000');
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Counter must not exceed 16 bytes, got 17 bytes');
+
+        new LRPCipher($key, 0, str_repeat("\x00", 17));
+    }
+
+    /**
+     * Test setCounter with counter exceeding 16 bytes.
+     */
+    public function testSetCounterTooLong(): void
+    {
+        $key = hex2bin('00000000000000000000000000000000');
+        $cipher = new LRPCipher($key, 0);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Counter must not exceed 16 bytes, got 20 bytes');
+
+        $cipher->setCounter(str_repeat("\xFF", 20));
     }
 }
