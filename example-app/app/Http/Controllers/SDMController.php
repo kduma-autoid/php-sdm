@@ -48,7 +48,7 @@ class SDMController extends Controller
             );
 
             return view('info', [
-                'encryptionMode' => $result['encryption_mode']->value,
+                'encryptionMode' => $result['encryption_mode']->name,
                 'uid' => $result['uid'],
                 'readCtr' => $result['read_ctr'],
                 'fileData' => null,
@@ -79,7 +79,7 @@ class SDMController extends Controller
             );
 
             return $this->jsonResponse([
-                'encryption_mode' => $result['encryption_mode']->value,
+                'encryption_mode' => $result['encryption_mode']->name,
                 'uid' => bin2hex($result['uid']),
                 'read_ctr' => $result['read_ctr'],
             ]);
@@ -148,7 +148,7 @@ class SDMController extends Controller
 
             $viewData = [
                 'piccDataTag' => $result['picc_data_tag'],
-                'encryptionMode' => $result['encryption_mode']->value,
+                'encryptionMode' => $result['encryption_mode']->name,
                 'uid' => $result['uid'],
                 'readCtr' => $result['read_ctr'],
                 'fileData' => $result['file_data'],
@@ -202,7 +202,7 @@ class SDMController extends Controller
 
             $responseData = [
                 'picc_data_tag' => bin2hex($result['picc_data_tag']),
-                'encryption_mode' => $result['encryption_mode']->value,
+                'encryption_mode' => $result['encryption_mode']->name,
                 'uid' => bin2hex($result['uid']),
                 'read_ctr' => $result['read_ctr'],
             ];
