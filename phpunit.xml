@@ -5,7 +5,7 @@
       <directory>tests/Unit</directory>
     </testsuite>
   </testsuites>
-  <source restrictNotices="true" restrictWarnings="true" ignoreIndirectDeprecations="true">
+  <source restrictDeprecations="true" restrictNotices="true" restrictWarnings="true" ignoreIndirectDeprecations="true">
     <include>
       <directory>src</directory>
     </include>
