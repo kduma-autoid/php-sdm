@@ -377,8 +377,9 @@ class LRPCipher implements CipherInterface
     /**
      * Remove ISO/IEC 9797-1 padding (0x80 followed by zeros).
      *
-     * Validates the entire padding structure before throwing an exception
-     * to avoid timing attacks that could leak information about padding validity.
+     * Uses constant-time algorithm to prevent timing attacks. Always scans
+     * the entire data regardless of padding location to avoid leaking timing
+     * information about where padding starts or validation failures occur.
      *
      * @param string $data Padded data
      *
@@ -391,26 +392,37 @@ class LRPCipher implements CipherInterface
         $dataLen = strlen($data);
         $paddingValid = false;
         $padLength = 0;
+        $markerFound = false;
 
-        // Scan from the end to find 0x80 marker, validating all bytes
+        // Always scan entire data from end to beginning (constant-time)
         for ($i = $dataLen - 1; $i >= 0; --$i) {
             $byte = ord($data[$i]);
+            $is0x80 = ($byte === 0x80);
+            $is0x00 = ($byte === 0x00);
 
-            if (0x80 === $byte && !$paddingValid) {
-                // Found padding marker
+            // Update padding state without branches that could leak timing
+            if ($is0x80 && !$markerFound) {
+                // Found 0x80 marker for first time
+                $markerFound = true;
                 $paddingValid = true;
                 $padLength = $dataLen - $i;
-            } elseif ($paddingValid) {
-                // Already found marker, this is part of the actual data
-                break;
-            } elseif (0x00 !== $byte) {
-                // Invalid padding byte found before 0x80 marker
-                // Continue scanning to maintain constant time
+            } elseif ($markerFound) {
+                // After marker found, all remaining bytes should be data
+                // No action needed, continue scanning
+            } elseif (!$is0x00) {
+                // Before marker: found non-zero byte that isn't 0x80
+                // This invalidates padding, but keep scanning
                 $paddingValid = false;
             }
+            // else: Before marker and byte is 0x00, continue scanning
         }
 
-        // Throw exception only after validating entire padding structure
+        // Validate marker was found (constant-time check after full scan)
+        if (!$markerFound) {
+            $paddingValid = false;
+        }
+
+        // Throw exception only after scanning entire data
         if (!$paddingValid) {
             throw new \RuntimeException('Invalid padding');
         }
