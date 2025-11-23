@@ -117,16 +117,15 @@ class ParameterParser
         $remaining = substr($data, 0, -8);
 
         // Detect encryption mode based on PICC data length
-        // First, try 16 bytes (AES)
-        if (strlen($remaining) >= 16) {
-            $piccData = substr($remaining, 0, 16);
-            $encFileData = strlen($remaining) > 16 ? substr($remaining, 16) : null;
-            $mode = 'AES';
-        } elseif (strlen($remaining) >= 24) {
-            // Try 24 bytes (LRP)
+        // Check for LRP (24 bytes) first, then AES (16 bytes)
+        if (strlen($remaining) >= 24) {
             $piccData = substr($remaining, 0, 24);
             $encFileData = strlen($remaining) > 24 ? substr($remaining, 24) : null;
             $mode = 'LRP';
+        } elseif (strlen($remaining) >= 16) {
+            $piccData = substr($remaining, 0, 16);
+            $encFileData = strlen($remaining) > 16 ? substr($remaining, 16) : null;
+            $mode = 'AES';
         } else {
             throw new \InvalidArgumentException('Invalid PICC data length');
         }
@@ -170,8 +169,9 @@ class ParameterParser
             return null;
         }
 
-        $byte1 = $fileData[0];
-        $byte2 = $fileData[1];
+        // Use substr() for safe byte extraction
+        $byte1 = substr($fileData, 0, 1);
+        $byte2 = substr($fileData, 1, 1);
 
         return match (true) {
             $byte1 === 'C' && $byte2 === 'C' => [

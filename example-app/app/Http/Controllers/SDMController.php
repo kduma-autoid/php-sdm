@@ -157,7 +157,7 @@ class SDMController extends Controller
                 'uid' => $result['uid'],
                 'readCtr' => $result['read_ctr'],
                 'fileData' => $result['file_data'],
-                'fileDataUtf8' => $result['file_data'] ? mb_convert_encoding($result['file_data'], 'UTF-8', 'UTF-8') : null,
+                'fileDataUtf8' => $result['file_data'] ? $this->convertToUtf8($result['file_data']) : null,
             ];
 
             // Add tamper status if this is a tamper tag
@@ -219,7 +219,7 @@ class SDMController extends Controller
 
             if ($result['file_data']) {
                 $responseData['file_data'] = bin2hex($result['file_data']);
-                $responseData['file_data_utf8'] = mb_convert_encoding($result['file_data'], 'UTF-8', 'UTF-8');
+                $responseData['file_data_utf8'] = $this->convertToUtf8($result['file_data']);
             }
 
             // Add tamper status if this is a tamper tag
@@ -253,9 +253,24 @@ class SDMController extends Controller
     }
 
     /**
-     * Get encryption key.
+     * Convert binary data to UTF-8 string safely.
      */
-    private function getEncKey(): string
+    private function convertToUtf8(string $data): string
+    {
+        // Check if data is already valid UTF-8
+        if (mb_check_encoding($data, 'UTF-8')) {
+            return $data;
+        }
+
+        // Treat as ISO-8859-1 (Latin1) and convert to UTF-8
+        // This ensures every byte is mapped to a valid character
+        return mb_convert_encoding($data, 'UTF-8', 'ISO-8859-1');
+    }
+
+    /**
+     * Get master key from configuration.
+     */
+    private function getMasterKey(): string
     {
         $masterKeyHex = config('sdm.master_key');
         $masterKey = hex2bin($masterKeyHex);
@@ -264,6 +279,15 @@ class SDMController extends Controller
             throw new \InvalidArgumentException('Invalid master key format');
         }
 
+        return $masterKey;
+    }
+
+    /**
+     * Get encryption key.
+     */
+    private function getEncKey(): string
+    {
+        $masterKey = $this->getMasterKey();
         $kdf = app(\KDuma\SDM\KeyDerivation::class);
 
         return $kdf->deriveUndiversifiedKey($masterKey, 1);
@@ -274,13 +298,7 @@ class SDMController extends Controller
      */
     private function getMacKey(string $uid): string
     {
-        $masterKeyHex = config('sdm.master_key');
-        $masterKey = hex2bin($masterKeyHex);
-
-        if ($masterKey === false) {
-            throw new \InvalidArgumentException('Invalid master key format');
-        }
-
+        $masterKey = $this->getMasterKey();
         $kdf = app(\KDuma\SDM\KeyDerivation::class);
 
         return $kdf->deriveTagKey($masterKey, $uid, 2);
