@@ -4,7 +4,10 @@
 
 @section('content')
     <h1 class="mb-4">
-        Secure Dynamic Messaging Backend Server@if(config('sdm.demo_mode')) Example@endif
+        Secure Dynamic Messaging Backend Server
+        @if(config('sdm.demo_mode'))
+            Example
+        @endif
     </h1>
 
     @if(config('sdm.demo_mode'))
