@@ -5,31 +5,22 @@ declare(strict_types=1);
 namespace KDuma\SDM\Cipher;
 
 /**
- * AES cipher implementation for NTAG DNA 424
+ * AES cipher implementation for NTAG DNA 424.
  */
 class AESCipher implements CipherInterface
 {
-    /**
-     * {@inheritdoc}
-     */
     public function encrypt(string $data, string $key, string $iv): string
     {
         // TODO: Implementation
         throw new \RuntimeException('Not implemented yet');
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function decrypt(string $data, string $key, string $iv): string
     {
         // TODO: Implementation
         throw new \RuntimeException('Not implemented yet');
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function cmac(string $data, string $key): string
     {
         $blockSize = 16; // AES block size in bytes
@@ -40,14 +31,14 @@ class AESCipher implements CipherInterface
         // Prepare the last block
         $length = strlen($data);
 
-        if ($length === 0) {
+        if (0 === $length) {
             // Empty message: use padded empty block
             $numBlocks = 1;
             $lastBlock = $this->pad('', $blockSize);
             $lastBlock = $this->xorStrings($lastBlock, $k2);
         } else {
             $numBlocks = (int) ceil($length / $blockSize);
-            $lastBlockComplete = ($length % $blockSize === 0);
+            $lastBlockComplete = (0 === $length % $blockSize);
 
             if ($lastBlockComplete) {
                 $lastBlock = substr($data, ($numBlocks - 1) * $blockSize, $blockSize);
@@ -62,12 +53,12 @@ class AESCipher implements CipherInterface
         // Process blocks
         $x = str_repeat("\x00", $blockSize);
 
-        for ($i = 0; $i < $numBlocks - 1; $i++) {
+        for ($i = 0; $i < $numBlocks - 1; ++$i) {
             $block = substr($data, $i * $blockSize, $blockSize);
             $x = $this->xorStrings($x, $block);
             $encrypted = openssl_encrypt($x, 'AES-128-ECB', $key, OPENSSL_RAW_DATA | OPENSSL_NO_PADDING);
 
-            if ($encrypted === false) {
+            if (false === $encrypted) {
                 throw new \RuntimeException('Failed to encrypt data during CMAC calculation');
             }
 
@@ -77,7 +68,7 @@ class AESCipher implements CipherInterface
         $x = $this->xorStrings($x, $lastBlock);
         $mac = openssl_encrypt($x, 'AES-128-ECB', $key, OPENSSL_RAW_DATA | OPENSSL_NO_PADDING);
 
-        if ($mac === false) {
+        if (false === $mac) {
             throw new \RuntimeException('Failed to generate CMAC');
         }
 
@@ -85,7 +76,7 @@ class AESCipher implements CipherInterface
     }
 
     /**
-     * Generate CMAC subkeys K1 and K2
+     * Generate CMAC subkeys K1 and K2.
      *
      * @return array{0: string, 1: string}
      */
@@ -95,7 +86,7 @@ class AESCipher implements CipherInterface
         $zero = str_repeat("\x00", $blockSize);
         $l = openssl_encrypt($zero, 'AES-128-ECB', $key, OPENSSL_RAW_DATA | OPENSSL_NO_PADDING);
 
-        if ($l === false) {
+        if (false === $l) {
             throw new \RuntimeException('Failed to encrypt data for CMAC subkey generation');
         }
 
@@ -119,7 +110,7 @@ class AESCipher implements CipherInterface
     }
 
     /**
-     * Left shift one bit
+     * Left shift one bit.
      */
     private function leftShift(string $input): string
     {
@@ -127,9 +118,9 @@ class AESCipher implements CipherInterface
         $output = '';
         $carry = 0;
 
-        for ($i = $length - 1; $i >= 0; $i--) {
+        for ($i = $length - 1; $i >= 0; --$i) {
             $byte = ord($input[$i]);
-            $output = chr((($byte << 1) | $carry) & 0xFF) . $output;
+            $output = chr((($byte << 1) | $carry) & 0xFF).$output;
             $carry = ($byte & 0x80) ? 1 : 0;
         }
 
@@ -137,14 +128,14 @@ class AESCipher implements CipherInterface
     }
 
     /**
-     * XOR two strings of equal length
+     * XOR two strings of equal length.
      */
     private function xorStrings(string $a, string $b): string
     {
         $length = strlen($a);
         $result = '';
 
-        for ($i = 0; $i < $length; $i++) {
+        for ($i = 0; $i < $length; ++$i) {
             $result .= chr(ord($a[$i]) ^ ord($b[$i]));
         }
 
@@ -152,19 +143,20 @@ class AESCipher implements CipherInterface
     }
 
     /**
-     * Pad the input according to CMAC specification (10* padding)
+     * Pad the input according to CMAC specification (10* padding).
      */
     private function pad(string $input, int $blockSize): string
     {
         $padLength = $blockSize - strlen($input);
-        return $input . "\x80" . str_repeat("\x00", $padLength - 1);
+
+        return $input."\x80".str_repeat("\x00", $padLength - 1);
     }
 
     /**
-     * Get Rb constant for CMAC (0x87 for AES-128)
+     * Get Rb constant for CMAC (0x87 for AES-128).
      */
     private function getRb(int $blockSize): string
     {
-        return str_repeat("\x00", $blockSize - 1) . "\x87";
+        return str_repeat("\x00", $blockSize - 1)."\x87";
     }
 }

@@ -7,7 +7,7 @@ namespace KDuma\SDM;
 use KDuma\SDM\Cipher\AESCipher;
 
 /**
- * Key derivation functions for NTAG DNA 424 SDM
+ * Key derivation functions for NTAG DNA 424 SDM.
  */
 class KeyDerivation
 {
@@ -24,10 +24,11 @@ class KeyDerivation
     }
 
     /**
-     * Derive an undiversified key from a master key
+     * Derive an undiversified key from a master key.
      *
      * @param string $masterKey The master key (binary, 16 bytes)
-     * @param int $keyNumber The key number (1 or 2)
+     * @param int    $keyNumber The key number (1 or 2)
+     *
      * @return string The derived key (binary, 16 bytes)
      */
     public function deriveUndiversifiedKey(string $masterKey, int $keyNumber): string
@@ -38,14 +39,14 @@ class KeyDerivation
         }
 
         // Only key number 1 is supported for undiversified keys
-        if ($keyNumber !== 1) {
+        if (1 !== $keyNumber) {
             throw new \InvalidArgumentException('Only key number 1 is supported for undiversified keys');
         }
 
         // Derive key using HMAC-SHA256 with DIV_CONST1
         $divConst1 = hex2bin(self::DIV_CONST1);
 
-        if ($divConst1 === false) {
+        if (false === $divConst1) {
             throw new \RuntimeException('Failed to decode DIV_CONST1');
         }
 
@@ -56,11 +57,12 @@ class KeyDerivation
     }
 
     /**
-     * Derive a tag-specific (UID-diversified) key from a master key
+     * Derive a tag-specific (UID-diversified) key from a master key.
      *
      * @param string $masterKey The master key (binary, 16 bytes)
-     * @param string $uid The UID of the tag (binary, 7 bytes)
-     * @param int $keyNumber The key number (1 or 2)
+     * @param string $uid       The UID of the tag (binary, 7 bytes)
+     * @param int    $keyNumber The key number (1 or 2)
+     *
      * @return string The derived key (binary, 16 bytes)
      */
     public function deriveTagKey(string $masterKey, string $uid, int $keyNumber): string
@@ -73,17 +75,17 @@ class KeyDerivation
         // Step 1: Derive CMAC key using HMAC-SHA256 with DIV_CONST2 + key_no
         $divConst2 = hex2bin(self::DIV_CONST2);
 
-        if ($divConst2 === false) {
+        if (false === $divConst2) {
             throw new \RuntimeException('Failed to decode DIV_CONST2');
         }
 
-        $cmacKey = hash_hmac('sha256', $divConst2 . chr($keyNumber), $masterKey, true);
+        $cmacKey = hash_hmac('sha256', $divConst2.chr($keyNumber), $masterKey, true);
         $cmacKey = substr($cmacKey, 0, 16);
 
         // Step 2: Nested HMAC operations for UID diversification
         $divConst3 = hex2bin(self::DIV_CONST3);
 
-        if ($divConst3 === false) {
+        if (false === $divConst3) {
             throw new \RuntimeException('Failed to decode DIV_CONST3');
         }
 
@@ -95,9 +97,8 @@ class KeyDerivation
         $hmac3 = substr($hmac3, 0, 16);
 
         // Step 3: CMAC with 0x01 + hmac3 as data
-        $cmacInput = "\x01" . $hmac3;
-        $diversifiedKey = $this->cipher->cmac($cmacInput, $cmacKey);
+        $cmacInput = "\x01".$hmac3;
 
-        return $diversifiedKey;
+        return $this->cipher->cmac($cmacInput, $cmacKey);
     }
 }
