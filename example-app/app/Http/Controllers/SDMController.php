@@ -289,9 +289,9 @@ class SDMController extends Controller
     /**
      * Return error view.
      */
-    private function errorResponse(string $message, int $status = 400): View
+    private function errorResponse(string $message, int $status = 400)
     {
-        return view('error', ['message' => $message])->setStatusCode($status);
+        return response()->view('error', ['message' => $message], $status);
     }
 
     /**
