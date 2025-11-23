@@ -341,21 +341,29 @@ class LRPCipher implements CipherInterface
     /**
      * Increment counter value.
      *
-     * @param string $counter Current counter value
+     * This implementation uses byte-by-byte arithmetic to avoid PHP integer
+     * overflow issues that would occur when converting large counters to integers.
+     * Works correctly on both 32-bit and 64-bit systems with counters of any length.
+     *
+     * The algorithm processes bytes from right to left (big-endian), maintaining
+     * a carry flag. Each byte operation ($byteValue) is guaranteed to be ≤ 256,
+     * making the bit shift ($byteValue >> 8) safe on all platforms.
+     *
+     * @param string $counter Current counter value (binary string, any length)
      *
      * @return string Incremented counter (wraps to zero on overflow)
      */
     private static function incrementCounter(string $counter): string
     {
-        // Byte-by-byte increment to avoid PHP integer overflow issues
-        // Increment from the rightmost byte (big-endian)
+        // Process bytes right-to-left with carry propagation
         $result = $counter;
         $carry = 1;
 
         for ($i = strlen($result) - 1; $i >= 0 && $carry; --$i) {
+            // $byteValue is always 0-256, safe for bit operations on any platform
             $byteValue = ord($result[$i]) + $carry;
             $result[$i] = chr($byteValue & 0xFF);
-            $carry = $byteValue >> 8;
+            $carry = $byteValue >> 8;  // Extract carry (0 or 1)
         }
 
         // If carry is still 1, counter overflowed - wrap to zero

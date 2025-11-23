@@ -364,6 +364,7 @@ class SDM implements SDMInterface
         }
 
         // Convert 3-byte read counter to integer (big-endian)
+        // Safe on both 32-bit and 64-bit: max value is 0xFFFFFF = 16,777,215
         $unpacked = unpack('N', "\x00".$readCtr);
         if (false === $unpacked) {
             throw new ValidationException('Failed to unpack read counter');
@@ -484,11 +485,13 @@ class SDM implements SDMInterface
             if ($sdmReadCtrEn) {
                 $readCtr = substr($plaintext, $offset, 3);
                 $dataStream .= $readCtr;
+                // Convert 3-byte read counter to integer (little-endian)
+                // Safe on both 32-bit and 64-bit: max value is 0xFFFFFF = 16,777,215
                 $unpacked = unpack('V', $readCtr."\x00");
                 if (false === $unpacked) {
                     throw new DecryptionException('Failed to unpack read counter');
                 }
-                $readCtrNum = $unpacked[1]; // little-endian 3-byte to int
+                $readCtrNum = $unpacked[1];
             }
 
             if (null === $uid) {
