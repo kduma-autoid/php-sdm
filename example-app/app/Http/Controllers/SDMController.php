@@ -33,7 +33,7 @@ class SDMController extends Controller
     /**
      * Plain SUN message validation (HTML).
      */
-    public function tagPlainText(Request $request): View
+    public function tagPlainText(Request $request)
     {
         try {
             $params = ParameterParser::parsePlainParams($request);
@@ -93,7 +93,7 @@ class SDMController extends Controller
     /**
      * SUN message decryption (HTML).
      */
-    public function tag(Request $request): View
+    public function tag(Request $request)
     {
         return $this->processEncryptedTag($request, false);
     }
@@ -109,7 +109,7 @@ class SDMController extends Controller
     /**
      * Tamper-tag SUN message decryption (HTML).
      */
-    public function tagTamper(Request $request): View
+    public function tagTamper(Request $request)
     {
         return $this->processEncryptedTag($request, true);
     }
@@ -125,7 +125,7 @@ class SDMController extends Controller
     /**
      * Process encrypted tag (common logic for tag and tagTamper).
      */
-    private function processEncryptedTag(Request $request, bool $isTamperTag): View
+    private function processEncryptedTag(Request $request, bool $isTamperTag)
     {
         try {
             $params = ParameterParser::parseEncryptedParams($request);
