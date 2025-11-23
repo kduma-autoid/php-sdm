@@ -115,11 +115,13 @@ class SDM implements SDMInterface
     public function validate(string $data, string $cmac): bool
     {
         // Validate data length: must be exactly 10 bytes (7-byte UID + 3-byte ReadCtr)
+        // Return false instead of throwing to maintain backwards compatibility
         if (10 !== strlen($data)) {
             return false;
         }
 
         // Validate CMAC length: must be exactly 8 bytes
+        // Return false instead of throwing to maintain backwards compatibility
         if (8 !== strlen($cmac)) {
             return false;
         }
@@ -250,7 +252,7 @@ class SDM implements SDMInterface
      *
      * @return array{encryption_mode: EncMode, uid: string, read_ctr: int}
      *
-     * @throws ValidationException if MAC is invalid
+     * @throws ValidationException if MAC is invalid or input data is malformed
      */
     public function validatePlainSun(
         string $uid,
@@ -259,6 +261,21 @@ class SDM implements SDMInterface
         string $sdmFileReadKey,
         ?EncMode $mode = null,
     ): array {
+        // Validate UID length
+        if (7 !== strlen($uid)) {
+            throw new ValidationException('Invalid UID length - expected 7 bytes, got '.strlen($uid).' bytes. This may indicate malformed or truncated input data.');
+        }
+
+        // Validate read counter length
+        if (3 !== strlen($readCtr)) {
+            throw new ValidationException('Invalid read counter length - expected 3 bytes, got '.strlen($readCtr).' bytes. This may indicate malformed or truncated input data.');
+        }
+
+        // Validate SDMMAC length
+        if (8 !== strlen($sdmmac)) {
+            throw new ValidationException('Invalid SDMMAC length - expected 8 bytes, got '.strlen($sdmmac).' bytes. This may indicate malformed or truncated input data.');
+        }
+
         if (null === $mode) {
             $mode = EncMode::AES;
         }
@@ -318,7 +335,7 @@ class SDM implements SDMInterface
             return EncMode::LRP;
         }
 
-        throw new DecryptionException('Unsupported encryption mode');
+        throw new DecryptionException('Invalid encrypted PICC data length - expected 16 bytes (AES) or 24 bytes (LRP), got '.$length.' bytes. This may indicate malformed or truncated input data.');
     }
 
     /**
@@ -344,6 +361,16 @@ class SDM implements SDMInterface
         string $sdmmac,
         ?string $encFileData = null,
     ): array {
+        // Validate SDMMAC length (must be exactly 8 bytes)
+        if (8 !== strlen($sdmmac)) {
+            throw new DecryptionException('Invalid SDMMAC length - expected 8 bytes, got '.strlen($sdmmac).' bytes. This may indicate malformed or truncated input data.');
+        }
+
+        // Validate encrypted file data if present (must be multiple of 16 bytes for AES)
+        if (null !== $encFileData && 0 !== strlen($encFileData) % 16) {
+            throw new DecryptionException('Invalid encrypted file data length - must be a multiple of 16 bytes, got '.strlen($encFileData).' bytes. This may indicate malformed or truncated input data.');
+        }
+
         $mode = $this->getEncryptionMode($piccEncData);
 
         if (EncMode::LRP === $mode) {
@@ -406,7 +433,7 @@ class SDM implements SDMInterface
 
         // Throw UID length error after MAC calculation (timing attack mitigation)
         if ($uidLengthError) {
-            throw new DecryptionException('Unsupported UID length');
+            throw new DecryptionException('Failed to decrypt PICCData - invalid encryption key or malformed data');
         }
 
         // Verify MAC using constant-time comparison
