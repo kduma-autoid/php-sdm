@@ -450,7 +450,9 @@ class LRPCipher implements CipherInterface
         );
 
         if (false === $result) {
+            // @codeCoverageIgnoreStart
             throw new \RuntimeException('Failed to encrypt data in ECB mode');
+            // @codeCoverageIgnoreEnd
         }
 
         return $result;
@@ -476,7 +478,9 @@ class LRPCipher implements CipherInterface
         );
 
         if (false === $result) {
+            // @codeCoverageIgnoreStart
             throw new \RuntimeException('Failed to decrypt data in ECB mode');
+            // @codeCoverageIgnoreEnd
         }
 
         return $result;
