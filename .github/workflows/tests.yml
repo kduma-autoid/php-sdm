@@ -45,6 +45,26 @@ jobs:
       - name: Run test suite
         run: composer test
 
+      - name: Generate code coverage
+        if: matrix.php == '8.3'
+        run: vendor/bin/phpunit --coverage-clover coverage.xml
+
+      - name: Code Coverage Summary
+        if: matrix.php == '8.3'
+        uses: irongut/CodeCoverageSummary@v1.3.0
+        with:
+          filename: coverage.xml
+          badge: true
+          format: markdown
+          output: both
+
+      - name: Add Coverage PR Comment
+        if: matrix.php == '8.3' && github.event_name == 'pull_request'
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          recreate: true
+          path: code-coverage-results.md
+
       - name: Run PHPStan
         if: success() || failure()
         run: composer phpstan
