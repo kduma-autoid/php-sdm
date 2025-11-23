@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace KDuma\SDM\Tests\Unit\Cipher;
 
 use KDuma\SDM\Cipher\LRPCipher;
-use PHPUnit\Framework\Attributes\CoversNothing;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -21,7 +21,7 @@ use PHPUnit\Framework\TestCase;
  *
  * @internal
  */
-#[CoversNothing]
+#[CoversClass(LRPCipher::class)]
 class LRPTest extends TestCase
 {
     /**
@@ -452,5 +452,25 @@ class LRPTest extends TestCase
         $result = $cipher->encryptECB($data, $key);
 
         $this->assertSame(16, strlen($result));
+    }
+
+    /**
+     * Test gfMultiply with invalid factor.
+     */
+    public function testGfMultiplyInvalidFactor(): void
+    {
+        $key = hex2bin('00000000000000000000000000000000');
+        $cipher = new LRPCipher($key, 0);
+
+        $reflection = new \ReflectionClass($cipher);
+        $method = $reflection->getMethod('gfMultiply');
+        $method->setAccessible(true);
+
+        $element = str_repeat("\x00", 16);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Factor must be 2 or 4');
+
+        $method->invoke($cipher, $element, 3);
     }
 }
