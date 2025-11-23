@@ -78,7 +78,7 @@ class SDMCoverageTest extends TestCase
     }
 
     /**
-     * Test decryptFileData with LRP mode.
+     * Test decryptFileData with LRP mode - uses test data from test_lrp_sdm.py.
      */
     public function testDecryptFileDataLRP(): void
     {
@@ -89,13 +89,13 @@ class SDMCoverageTest extends TestCase
 
         $result = $sdm->decryptFileData(
             hex2bin('00000000000000000000000000000000'),
-            hex2bin('04DE5F1EACC040').hex2bin('3D0000'),
-            hex2bin('3D0000'),
-            hex2bin('0000000000000000'),
+            hex2bin('042e1d222a6380').hex2bin('7b0000'),
+            hex2bin('7b0000'),
+            hex2bin('4ADE304B5AB9474CB40AFFCAB0607A85'),
             EncMode::LRP,
         );
 
-        $this->assertIsString($result);
+        $this->assertSame('0102030400000000', $result);
     }
 
     /**
@@ -124,7 +124,7 @@ class SDMCoverageTest extends TestCase
     }
 
     /**
-     * Test decryptSunMessage with LRP detected.
+     * Test decryptSunMessage with LRP detected - uses test data from test_lrp_sdm.py.
      */
     public function testDecryptSunMessageLRP(): void
     {
@@ -133,18 +133,18 @@ class SDMCoverageTest extends TestCase
             macKey: hex2bin('00000000000000000000000000000000'),
         );
 
-        // This is the actual test data from testSdmLrp1 with correct MAC
         $res = $sdm->decryptSunMessage(
             paramMode: ParamMode::SEPARATED,
             sdmMetaReadKey: hex2bin('00000000000000000000000000000000'),
             sdmFileReadKey: fn ($uid) => hex2bin('00000000000000000000000000000000'),
-            piccEncData: hex2bin('07D9CA2545881D4BFDD920BE1603268C0714420DD893A497'),
-            encFileData: hex2bin('D6E921C47DB4C17C56F979F81559BB83'),
-            sdmmac: hex2bin('F9481AC7D855BDB6'),
+            piccEncData: hex2bin('65628ED36888CF9C84797E43ECACF114C6ED9A5E101EB592'),
+            encFileData: hex2bin('4ADE304B5AB9474CB40AFFCAB0607A85'),
+            sdmmac: hex2bin('759B10964491D74A'),
         );
 
         $this->assertSame(EncMode::LRP, $res['encryption_mode']);
-        $this->assertSame(hex2bin('049b112a2f7080'), $res['uid']);
+        $this->assertSame(hex2bin('042e1d222a6380'), $res['uid']);
+        $this->assertSame('0102030400000000', $res['file_data']);
     }
 
     /**

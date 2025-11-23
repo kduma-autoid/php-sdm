@@ -376,17 +376,6 @@ class LRPTest extends TestCase
     }
 
     /**
-     * Test invalid counter length throws exception.
-     */
-    public function testInvalidCounterLength(): void
-    {
-        $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('Counter must be 16 bytes');
-
-        new LRPCipher(str_repeat("\x00", 16), 0, 'short');
-    }
-
-    /**
      * Test encryption without padding requires block-aligned data.
      */
     public function testEncryptWithoutPaddingNonAligned(): void
@@ -449,20 +438,6 @@ class LRPTest extends TestCase
         $cipher->setCounter($counter);
 
         $this->assertSame($counter, $cipher->getCounter());
-    }
-
-    /**
-     * Test set counter with invalid length throws exception.
-     */
-    public function testSetCounterInvalidLength(): void
-    {
-        $key = hex2bin('00000000000000000000000000000000');
-        $cipher = new LRPCipher($key, 0);
-
-        $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('Counter must be 16 bytes');
-
-        $cipher->setCounter('short');
     }
 
     /**

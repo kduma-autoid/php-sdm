@@ -178,22 +178,23 @@ class SDM implements SDMInterface
             // LRP mode - derive CMAC session key using SV2 with different format
             $sv2stream = "\x00\x01\x00\x80".$piccData;
 
-            // Pad to block size + 2 bytes, then add trailer
-            $paddedLength = (int) (ceil(strlen($sv2stream) / 16) * 16) + 2;
-            $sv2stream = str_pad($sv2stream, $paddedLength - 2, "\x00");
+            // Pad until (length + 2) is a multiple of block size, then add 2-byte trailer
+            while ((strlen($sv2stream) + 2) % 16 !== 0) {
+                $sv2stream .= "\x00";
+            }
             $sv2stream .= "\x1E\xE1";
 
             // Derive master key using LRP CMAC
             $lrpCipher = new LRPCipher($sdmFileReadKey, 0);
             $masterKey = $lrpCipher->cmac($sv2stream, $sdmFileReadKey);
 
-            // Calculate CMAC with session key
-            $lrpSession = new LRPCipher($masterKey, 1);
+            // Calculate CMAC with session key (update_mode=0 for session macing)
+            $lrpSession = new LRPCipher($masterKey, 0);
             $macDigest = $lrpSession->cmac($inputBuf, $masterKey);
 
-            // Extract even bytes (0, 2, 4, 6, 8, 10, 12, 14)
+            // Extract odd bytes (1, 3, 5, 7, 9, 11, 13, 15)
             $result = '';
-            for ($i = 0; $i < 16; $i += 2) {
+            for ($i = 1; $i < 16; $i += 2) {
                 $result .= $macDigest[$i];
             }
 
@@ -245,19 +246,20 @@ class SDM implements SDMInterface
             // LRP mode - derive encryption session key using SV1 with different format
             $sv1stream = "\x00\x01\x00\x80".$piccData;
 
-            // Pad to block size + 2 bytes, then add trailer
-            $paddedLength = (int) (ceil(strlen($sv1stream) / 16) * 16) + 2;
-            $sv1stream = str_pad($sv1stream, $paddedLength - 2, "\x00");
+            // Pad until (length + 2) is a multiple of block size, then add 2-byte trailer
+            while ((strlen($sv1stream) + 2) % 16 !== 0) {
+                $sv1stream .= "\x00";
+            }
             $sv1stream .= "\x1E\xE1";
 
             // Derive master key using LRP CMAC
             $lrpCipher = new LRPCipher($sdmFileReadKey, 0);
             $masterKey = $lrpCipher->cmac($sv1stream, $sdmFileReadKey);
 
-            // Decrypt file data using LRP with mode 1 and read counter as IV
-            $lrpSession = new LRPCipher($masterKey, 1, $readCtr.str_repeat("\x00", 13), false);
+            // Decrypt file data using LRP with mode 1 and read counter + 3 zero bytes as IV
+            $lrpSession = new LRPCipher($masterKey, 1, $readCtr."\x00\x00\x00", false);
 
-            return $lrpSession->decrypt($encFileData, $masterKey, $readCtr.str_repeat("\x00", 13));
+            return $lrpSession->decrypt($encFileData, $masterKey, $readCtr."\x00\x00\x00");
         }
 
         // AES mode - derive encryption session key using SV1
@@ -385,9 +387,9 @@ class SDM implements SDMInterface
             $piccRandom = substr($piccEncData, 0, 8);
             $encryptedPiccData = substr($piccEncData, 8);
 
-            // Use LRP to decrypt PICC data (no padding for PICC data)
-            $lrpCipher = new LRPCipher($sdmMetaReadKey, 0, $piccRandom.str_repeat("\x00", 8), false);
-            $plaintext = $lrpCipher->decrypt($encryptedPiccData, $sdmMetaReadKey, $piccRandom.str_repeat("\x00", 8));
+            // Use LRP to decrypt PICC data (no padding for PICC data, use 8-byte PICC random as counter)
+            $lrpCipher = new LRPCipher($sdmMetaReadKey, 0, $piccRandom, false);
+            $plaintext = $lrpCipher->decrypt($encryptedPiccData, $sdmMetaReadKey, $piccRandom);
         } else {
             // AES mode - decrypt using CBC with zero IV
             $plaintext = $this->cipher->decrypt($piccEncData, $sdmMetaReadKey, str_repeat("\x00", 16));

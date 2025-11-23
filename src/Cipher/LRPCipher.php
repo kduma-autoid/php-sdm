@@ -88,10 +88,6 @@ class LRPCipher implements CipherInterface
         $this->counter = $counter ?? str_repeat("\x00", 16);
         $this->usePadding = $usePadding;
 
-        if (16 !== strlen($this->counter)) {
-            throw new \InvalidArgumentException('Counter must be 16 bytes');
-        }
-
         // Generate plaintexts and updated keys
         $this->plaintexts = $this->generatePlaintexts($key);
         $this->updatedKeys = $this->generateUpdatedKeys($key);
@@ -302,10 +298,6 @@ class LRPCipher implements CipherInterface
      */
     public function setCounter(string $counter): void
     {
-        if (16 !== strlen($counter)) {
-            throw new \InvalidArgumentException('Counter must be 16 bytes');
-        }
-
         $this->counter = $counter;
     }
 
