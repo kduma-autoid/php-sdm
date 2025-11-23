@@ -181,4 +181,88 @@ final class KeyDerivationTest extends TestCase
 
         $this->kdf->deriveTagKey($masterKey, $uid, 3);
     }
+
+    /**
+     * Test that master key shorter than 16 bytes throws exception for deriveUndiversifiedKey.
+     */
+    public function testMasterKeyTooShortUndiversified(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Master key must be 16-32 bytes (got 12 bytes)');
+
+        $this->kdf->deriveUndiversifiedKey(str_repeat('x', 12), 1);
+    }
+
+    /**
+     * Test that master key longer than 32 bytes throws exception for deriveUndiversifiedKey.
+     */
+    public function testMasterKeyTooLongUndiversified(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Master key must be 16-32 bytes (got 40 bytes)');
+
+        $this->kdf->deriveUndiversifiedKey(str_repeat('x', 40), 1);
+    }
+
+    /**
+     * Test that master key shorter than 16 bytes throws exception for deriveTagKey.
+     */
+    public function testMasterKeyTooShortTagKey(): void
+    {
+        $uid = hex2bin('010203040506AB');
+        $this->assertNotFalse($uid);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Master key must be 16-32 bytes (got 8 bytes)');
+
+        $this->kdf->deriveTagKey(str_repeat('x', 8), $uid, 1);
+    }
+
+    /**
+     * Test that master key longer than 32 bytes throws exception for deriveTagKey.
+     */
+    public function testMasterKeyTooLongTagKey(): void
+    {
+        $uid = hex2bin('010203040506AB');
+        $this->assertNotFalse($uid);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Master key must be 16-32 bytes (got 48 bytes)');
+
+        $this->kdf->deriveTagKey(str_repeat('x', 48), $uid, 1);
+    }
+
+    /**
+     * Test that 16-byte master key (minimum valid length) works correctly.
+     */
+    public function testMasterKey16BytesValid(): void
+    {
+        $masterKey = str_repeat('x', 16);
+        $uid = hex2bin('010203040506AB');
+        $this->assertNotFalse($uid);
+
+        // Should not throw exception
+        $result1 = $this->kdf->deriveUndiversifiedKey($masterKey, 1);
+        $this->assertSame(16, strlen($result1));
+
+        $result2 = $this->kdf->deriveTagKey($masterKey, $uid, 1);
+        $this->assertSame(16, strlen($result2));
+    }
+
+    /**
+     * Test that 32-byte master key (maximum valid length) works correctly.
+     */
+    public function testMasterKey32BytesValid(): void
+    {
+        $masterKey = str_repeat('y', 32);
+        $uid = hex2bin('010203040506AB');
+        $this->assertNotFalse($uid);
+
+        // Should not throw exception
+        $result1 = $this->kdf->deriveUndiversifiedKey($masterKey, 1);
+        $this->assertSame(16, strlen($result1));
+
+        $result2 = $this->kdf->deriveTagKey($masterKey, $uid, 1);
+        $this->assertSame(16, strlen($result2));
+    }
 }

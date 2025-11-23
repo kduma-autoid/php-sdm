@@ -81,10 +81,20 @@ class KeyDerivation
      */
     public function deriveUndiversifiedKey(string $masterKey, int $keyNumber): string
     {
-        // IMPORTANT: Validate key number BEFORE factory key check to ensure
-        // invalid key numbers are rejected even when using factory keys
+        // IMPORTANT: Validate parameters BEFORE factory key check to ensure
+        // invalid inputs are rejected even when using factory keys
+
+        // Validate key number
         if (1 !== $keyNumber) {
             throw new \InvalidArgumentException('Only key number 1 is supported for undiversified keys');
+        }
+
+        // Validate master key length: 16 bytes (AES-128) to 32 bytes (AES-256)
+        $keyLength = strlen($masterKey);
+        if ($keyLength < 16 || $keyLength > 32) {
+            throw new \InvalidArgumentException(
+                sprintf('Master key must be 16-32 bytes (got %d bytes). Keys shorter than 16 bytes are cryptographically weak.', $keyLength),
+            );
         }
 
         // Check for factory key (all zeros) - exactly 16 bytes of zeros
@@ -127,6 +137,14 @@ class KeyDerivation
         // Validate key number
         if (1 !== $keyNumber && 2 !== $keyNumber) {
             throw new \InvalidArgumentException(sprintf('Key number must be 1 or 2, got %d', $keyNumber));
+        }
+
+        // Validate master key length: 16 bytes (AES-128) to 32 bytes (AES-256)
+        $keyLength = strlen($masterKey);
+        if ($keyLength < 16 || $keyLength > 32) {
+            throw new \InvalidArgumentException(
+                sprintf('Master key must be 16-32 bytes (got %d bytes). Keys shorter than 16 bytes are cryptographically weak.', $keyLength),
+            );
         }
 
         // Check for factory key (all zeros) - exactly 16 bytes of zeros
