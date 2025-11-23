@@ -9,6 +9,9 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
     strategy:
       fail-fast: false
       matrix:
@@ -43,7 +46,18 @@ jobs:
         run: composer install --prefer-dist --no-progress
 
       - name: Run test suite
+        if: matrix.php != '8.3'
         run: composer test
+
+      - name: Run test suite with coverage
+        if: matrix.php == '8.3'
+        run: vendor/bin/phpunit --coverage-clover coverage.xml
+
+      - name: Code Coverage Report
+        if: matrix.php == '8.3' && github.event_name == 'pull_request'
+        uses: lucassabreu/comment-coverage-clover@v0.12.0
+        with:
+          file: coverage.xml
 
       - name: Run PHPStan
         if: success() || failure()
