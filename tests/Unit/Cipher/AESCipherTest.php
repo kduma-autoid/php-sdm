@@ -8,6 +8,9 @@ use KDuma\SDM\Cipher\AESCipher;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @internal
+ */
 #[CoversClass(AESCipher::class)]
 final class AESCipherTest extends TestCase
 {
@@ -32,7 +35,7 @@ final class AESCipherTest extends TestCase
         $this->assertSame(
             'bb1d6929e95937287fa37d129b756746',
             bin2hex($result),
-            'CMAC of empty message should match NIST test vector'
+            'CMAC of empty message should match NIST test vector',
         );
     }
 
@@ -52,7 +55,7 @@ final class AESCipherTest extends TestCase
         $this->assertSame(
             '070a16b46b4d4144f79bdd9dd04a287c',
             bin2hex($result),
-            'CMAC of 16 byte message should match NIST test vector'
+            'CMAC of 16 byte message should match NIST test vector',
         );
     }
 }

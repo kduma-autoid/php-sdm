@@ -8,6 +8,9 @@ use KDuma\SDM\SDM;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @internal
+ */
 #[CoversNothing]
 final class SDMTest extends TestCase
 {

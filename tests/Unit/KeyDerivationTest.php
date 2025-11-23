@@ -8,6 +8,9 @@ use KDuma\SDM\KeyDerivation;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @internal
+ */
 #[CoversClass(KeyDerivation::class)]
 final class KeyDerivationTest extends TestCase
 {

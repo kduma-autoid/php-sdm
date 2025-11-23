@@ -139,7 +139,7 @@ class AESCipher implements CipherInterface
 
         if ($lengthA !== $lengthB) {
             throw new \InvalidArgumentException(
-                sprintf('Cannot XOR strings of different lengths: %d vs %d bytes', $lengthA, $lengthB)
+                sprintf('Cannot XOR strings of different lengths: %d vs %d bytes', $lengthA, $lengthB),
             );
         }
 
