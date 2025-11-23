@@ -96,8 +96,34 @@ class SDM implements SDMInterface
         );
     }
 
+    /**
+     * Validate plain SUN message authentication (convenience wrapper).
+     *
+     * This method validates a plain (unencrypted) SUN message by checking its SDMMAC.
+     * The data must be in the format: [ UID (7 bytes) ][ SDMReadCtr (3 bytes) ]
+     *
+     * Note: This method assumes AES encryption mode. For LRP mode support or more
+     * control over validation parameters, use validatePlainSun() directly.
+     *
+     * @param string $data The plain SUN data: UID (7 bytes) + ReadCtr (3 bytes)
+     * @param string $cmac The SDMMAC to validate against (8 bytes)
+     *
+     * @return bool True if the SDMMAC is valid, false otherwise
+     *
+     * @see validatePlainSun() for more detailed validation with mode selection
+     */
     public function validate(string $data, string $cmac): bool
     {
+        // Validate data length: must be exactly 10 bytes (7-byte UID + 3-byte ReadCtr)
+        if (10 !== strlen($data)) {
+            return false;
+        }
+
+        // Validate CMAC length: must be exactly 8 bytes
+        if (8 !== strlen($cmac)) {
+            return false;
+        }
+
         try {
             $this->validatePlainSun(
                 uid: substr($data, 0, 7),

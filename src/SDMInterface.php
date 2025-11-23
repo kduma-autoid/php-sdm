@@ -21,12 +21,15 @@ interface SDMInterface
     public function decrypt(string $encData, string $encFileData, string $cmac): array;
 
     /**
-     * Validate SDM message authentication.
+     * Validate plain SUN message authentication.
      *
-     * @param string $data Data to validate
-     * @param string $cmac CMAC to check against
+     * Validates a plain (unencrypted) SUN message by checking its SDMMAC.
+     * The data must contain UID (7 bytes) followed by SDMReadCtr (3 bytes).
      *
-     * @return bool True if valid
+     * @param string $data The plain SUN data: UID (7 bytes) + ReadCtr (3 bytes), exactly 10 bytes
+     * @param string $cmac The SDMMAC to validate against (8 bytes)
+     *
+     * @return bool True if the SDMMAC is valid and data format is correct, false otherwise
      */
     public function validate(string $data, string $cmac): bool;
 }

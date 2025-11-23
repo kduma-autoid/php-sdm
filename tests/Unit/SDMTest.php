@@ -55,4 +55,80 @@ final class SDMTest extends TestCase
 
         $this->assertFalse($result);
     }
+
+    /**
+     * Test validate method returns false for data that is too short.
+     */
+    public function testValidateDataTooShort(): void
+    {
+        $sdm = new SDM(str_repeat('k', 16), str_repeat('m', 16));
+
+        // Test with 9 bytes (should be 10)
+        $result = $sdm->validate(str_repeat('d', 9), 'cmac1234');
+
+        $this->assertFalse($result);
+    }
+
+    /**
+     * Test validate method returns false for data that is too long.
+     */
+    public function testValidateDataTooLong(): void
+    {
+        $sdm = new SDM(str_repeat('k', 16), str_repeat('m', 16));
+
+        // Test with 11 bytes (should be 10)
+        $result = $sdm->validate(str_repeat('d', 11), 'cmac1234');
+
+        $this->assertFalse($result);
+    }
+
+    /**
+     * Test validate method returns false for CMAC that is too short.
+     */
+    public function testValidateCmacTooShort(): void
+    {
+        $sdm = new SDM(str_repeat('k', 16), str_repeat('m', 16));
+
+        // Test with 7-byte CMAC (should be 8)
+        $result = $sdm->validate(str_repeat('d', 10), 'cmac123');
+
+        $this->assertFalse($result);
+    }
+
+    /**
+     * Test validate method returns false for CMAC that is too long.
+     */
+    public function testValidateCmacTooLong(): void
+    {
+        $sdm = new SDM(str_repeat('k', 16), str_repeat('m', 16));
+
+        // Test with 9-byte CMAC (should be 8)
+        $result = $sdm->validate(str_repeat('d', 10), 'cmac12345');
+
+        $this->assertFalse($result);
+    }
+
+    /**
+     * Test validate method returns false for empty data.
+     */
+    public function testValidateEmptyData(): void
+    {
+        $sdm = new SDM(str_repeat('k', 16), str_repeat('m', 16));
+
+        $result = $sdm->validate('', 'cmac1234');
+
+        $this->assertFalse($result);
+    }
+
+    /**
+     * Test validate method returns false for empty CMAC.
+     */
+    public function testValidateEmptyCmac(): void
+    {
+        $sdm = new SDM(str_repeat('k', 16), str_repeat('m', 16));
+
+        $result = $sdm->validate(str_repeat('d', 10), '');
+
+        $this->assertFalse($result);
+    }
 }
