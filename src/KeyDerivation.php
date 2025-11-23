@@ -109,7 +109,9 @@ class KeyDerivation
         $divConst1 = hex2bin(self::DIV_CONST1);
 
         if (false === $divConst1) {
+            // @codeCoverageIgnoreStart
             throw new \RuntimeException('Failed to decode DIV_CONST1');
+            // @codeCoverageIgnoreEnd
         }
 
         // HMAC-SHA256 and truncate to 16 bytes
@@ -162,7 +164,9 @@ class KeyDerivation
         $divConst2 = hex2bin(self::DIV_CONST2);
 
         if (false === $divConst2) {
+            // @codeCoverageIgnoreStart
             throw new \RuntimeException('Failed to decode DIV_CONST2');
+            // @codeCoverageIgnoreEnd
         }
 
         $cmacKey = hash_hmac('sha256', $divConst2.chr($keyNumber), $masterKey, true);
@@ -172,7 +176,9 @@ class KeyDerivation
         $divConst3 = hex2bin(self::DIV_CONST3);
 
         if (false === $divConst3) {
+            // @codeCoverageIgnoreStart
             throw new \RuntimeException('Failed to decode DIV_CONST3');
+            // @codeCoverageIgnoreEnd
         }
 
         // HMAC-SHA256(master_key, DIV_CONST3) - full 32 bytes, not truncated

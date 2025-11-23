@@ -140,7 +140,9 @@ class AESCipher implements CipherInterface
             $encrypted = openssl_encrypt($x, 'AES-128-ECB', $key, OPENSSL_RAW_DATA | OPENSSL_NO_PADDING);
 
             if (false === $encrypted) {
+                // @codeCoverageIgnoreStart
                 throw new \RuntimeException('Failed to encrypt data during CMAC calculation');
+                // @codeCoverageIgnoreEnd
             }
 
             $x = $encrypted;
@@ -150,7 +152,9 @@ class AESCipher implements CipherInterface
         $mac = openssl_encrypt($x, 'AES-128-ECB', $key, OPENSSL_RAW_DATA | OPENSSL_NO_PADDING);
 
         if (false === $mac) {
+            // @codeCoverageIgnoreStart
             throw new \RuntimeException('Failed to generate CMAC');
+            // @codeCoverageIgnoreEnd
         }
 
         return $mac;
@@ -168,7 +172,9 @@ class AESCipher implements CipherInterface
         $l = openssl_encrypt($zero, 'AES-128-ECB', $key, OPENSSL_RAW_DATA | OPENSSL_NO_PADDING);
 
         if (false === $l) {
+            // @codeCoverageIgnoreStart
             throw new \RuntimeException('Failed to encrypt data for CMAC subkey generation');
+            // @codeCoverageIgnoreEnd
         }
 
         // K1 = L << 1

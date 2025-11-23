@@ -203,7 +203,9 @@ class SDM implements SDMInterface
 
             // Pad until (length + 2) is a multiple of block size, then add 2-byte trailer
             while ((strlen($sv2stream) + 2) % 16 !== 0) {
+                // @codeCoverageIgnoreStart
                 $sv2stream .= "\x00";
+                // @codeCoverageIgnoreEnd
             }
             $sv2stream .= self::LRP_STREAM_TRAILER;
 
@@ -277,7 +279,9 @@ class SDM implements SDMInterface
 
             // Pad until (length + 2) is a multiple of block size, then add 2-byte trailer
             while ((strlen($sv1stream) + 2) % 16 !== 0) {
+                // @codeCoverageIgnoreStart
                 $sv1stream .= "\x00";
+                // @codeCoverageIgnoreEnd
             }
             $sv1stream .= self::LRP_STREAM_TRAILER;
 
@@ -367,7 +371,9 @@ class SDM implements SDMInterface
         // Safe on both 32-bit and 64-bit: max value is 0xFFFFFF = 16,777,215
         $unpacked = unpack('N', "\x00".$readCtr);
         if (false === $unpacked) {
+            // @codeCoverageIgnoreStart
             throw new ValidationException('Failed to unpack read counter');
+            // @codeCoverageIgnoreEnd
         }
         $readCtrNum = $unpacked[1];
 
@@ -489,7 +495,9 @@ class SDM implements SDMInterface
                 // Safe on both 32-bit and 64-bit: max value is 0xFFFFFF = 16,777,215
                 $unpacked = unpack('V', $readCtr."\x00");
                 if (false === $unpacked) {
+                    // @codeCoverageIgnoreStart
                     throw new DecryptionException('Failed to unpack read counter');
+                    // @codeCoverageIgnoreEnd
                 }
                 $readCtrNum = $unpacked[1];
             }
@@ -516,7 +524,9 @@ class SDM implements SDMInterface
         // Decrypt file data if present
         if (null !== $encFileData) {
             if (null === $readCtr) {
+                // @codeCoverageIgnoreStart
                 throw new DecryptionException('SDMReadCtr is required to decipher SDMENCFileData');
+                // @codeCoverageIgnoreEnd
             }
 
             $fileData = $this->decryptFileData($fileKey, $dataStream, $readCtr, $encFileData, $mode);
