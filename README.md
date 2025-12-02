@@ -69,16 +69,17 @@ composer cs-fix
 ```
 src/
 ├── Cipher/          # Cryptographic operations
+│   ├── BinaryStringOperations.php
 │   ├── CipherInterface.php
-│   └── AESCipher.php
+│   ├── AESCipher.php
+│   └── LRPCipher.php
 ├── Exceptions/      # Custom exceptions
 │   ├── SDMException.php
 │   ├── DecryptionException.php
 │   └── ValidationException.php
-├── PICC/           # PICC data structures
-│   └── PICCData.php
-├── SUN/            # SUN message handling
-│   └── SUNMessage.php
+├── EncMode.php      # Encryption mode enum (AES, LRP)
+├── ParamMode.php    # Parameter mode enum (SEPARATED, BULK)
+├── KeyDerivation.php
 ├── SDMInterface.php
 └── SDM.php
 ```
