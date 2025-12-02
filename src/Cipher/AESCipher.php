@@ -9,6 +9,8 @@ namespace KDuma\SDM\Cipher;
  */
 class AESCipher implements CipherInterface
 {
+    use BinaryStringOperations;
+
     /**
      * Encrypt data using AES-128-CBC mode without padding.
      *
@@ -212,25 +214,6 @@ class AESCipher implements CipherInterface
         }
 
         return $output;
-    }
-
-    /**
-     * XOR two strings of equal length.
-     *
-     * @throws \InvalidArgumentException if strings have different lengths
-     */
-    private function xorStrings(string $a, string $b): string
-    {
-        $lengthA = strlen($a);
-        $lengthB = strlen($b);
-
-        if ($lengthA !== $lengthB) {
-            throw new \InvalidArgumentException(
-                sprintf('Cannot XOR strings of different lengths: %d vs %d bytes', $lengthA, $lengthB),
-            );
-        }
-
-        return $a ^ $b;
     }
 
     /**

@@ -19,6 +19,8 @@ namespace KDuma\SDM\Cipher;
  */
 class LRPCipher implements CipherInterface
 {
+    use BinaryStringOperations;
+
     /**
      * AES block size in bytes.
      */
@@ -522,25 +524,6 @@ class LRPCipher implements CipherInterface
         }
 
         return $result;
-    }
-
-    /**
-     * XOR two binary strings.
-     *
-     * @param string $a First string
-     * @param string $b Second string
-     *
-     * @return string XOR result
-     *
-     * @throws \InvalidArgumentException if strings have different lengths
-     */
-    private function xorStrings(string $a, string $b): string
-    {
-        if (strlen($a) !== strlen($b)) {
-            throw new \InvalidArgumentException('Cannot XOR strings of different lengths');
-        }
-
-        return $a ^ $b;
     }
 
     /**
