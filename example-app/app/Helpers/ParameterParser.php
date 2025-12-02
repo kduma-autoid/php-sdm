@@ -121,19 +121,20 @@ class ParameterParser
         $sdmmac = substr($data, -8);
         $remaining = substr($data, 0, -8);
 
-        // Detect encryption mode based on PICC data length
-        // Check for LRP (24 bytes) first, then AES (16 bytes)
+        // Detect encryption mode and extract PICC data
+        // Try LRP (24 bytes) first, then AES (16 bytes)
         if (strlen($remaining) >= 24) {
             $piccData = substr($remaining, 0, 24);
             $encFileData = strlen($remaining) > 24 ? substr($remaining, 24) : null;
-            $mode = 'LRP';
         } elseif (strlen($remaining) >= 16) {
             $piccData = substr($remaining, 0, 16);
             $encFileData = strlen($remaining) > 16 ? substr($remaining, 16) : null;
-            $mode = 'AES';
         } else {
             throw new \InvalidArgumentException('Invalid PICC data length');
         }
+
+        // Use detectEncryptionMode to determine mode consistently
+        $mode = self::detectEncryptionMode($piccData);
 
         return [
             'picc_data' => $piccData,
