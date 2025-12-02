@@ -217,16 +217,7 @@ class SDM implements SDMInterface
             $lrpSession = new LRPCipher($masterKey, 0);
             $macDigest = $lrpSession->cmac($inputBuf, $masterKey);
 
-            // Extract odd bytes (1, 3, 5, 7, 9, 11, 13, 15) to form 8-byte SDMMAC
-            // Note: This reduces MAC strength from 128 bits to 64 bits as specified
-            // by the NTAG 424 DNA protocol. The odd-byte extraction is part of the
-            // AN12196 specification for SUN message authentication.
-            $result = '';
-            for ($i = 1; $i < 16; $i += 2) {
-                $result .= $macDigest[$i];
-            }
-
-            return $result;
+            return $this->extractOddBytes($macDigest);
         }
 
         // AES mode - derive CMAC session key using SV2
@@ -239,16 +230,7 @@ class SDM implements SDMInterface
         $c2 = $this->cipher->cmac($sv2stream, $sdmFileReadKey);
         $macDigest = $this->cipher->cmac($inputBuf, $c2);
 
-        // Extract odd bytes (1, 3, 5, 7, 9, 11, 13, 15) to form 8-byte SDMMAC
-        // Note: This reduces MAC strength from 128 bits to 64 bits as specified
-        // by the NTAG 424 DNA protocol. The odd-byte extraction is part of the
-        // AN12196 specification for SUN message authentication.
-        $result = '';
-        for ($i = 1; $i < 16; $i += 2) {
-            $result .= $macDigest[$i];
-        }
-
-        return $result;
+        return $this->extractOddBytes($macDigest);
     }
 
     /**
@@ -546,5 +528,26 @@ class SDM implements SDMInterface
             'file_data' => $fileData,
             'encryption_mode' => $mode,
         ];
+    }
+
+    /**
+     * Extract odd bytes from a 16-byte MAC digest to form 8-byte SDMMAC.
+     *
+     * Extracts bytes at positions 1, 3, 5, 7, 9, 11, 13, 15 from the input.
+     * This reduces MAC strength from 128 bits to 64 bits as specified by the
+     * NTAG 424 DNA protocol (AN12196).
+     *
+     * @param string $macDigest The 16-byte MAC digest
+     *
+     * @return string The 8-byte SDMMAC
+     */
+    private function extractOddBytes(string $macDigest): string
+    {
+        $result = '';
+        for ($i = 1; $i < 16; $i += 2) {
+            $result .= $macDigest[$i];
+        }
+
+        return $result;
     }
 }
