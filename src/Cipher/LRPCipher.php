@@ -113,6 +113,8 @@ class LRPCipher implements CipherInterface
     /**
      * Generate plaintexts for LRP (Algorithm 1).
      *
+     * @internal This method is public only for unit testing purposes
+     *
      * @param string $key Secret key (16 bytes)
      *
      * @return array<int, string> Array of plaintext blocks
@@ -133,6 +135,8 @@ class LRPCipher implements CipherInterface
 
     /**
      * Generate updated keys for LRP (Algorithm 2).
+     *
+     * @internal This method is public only for unit testing purposes
      *
      * @param string $key Secret key (16 bytes)
      *
@@ -161,6 +165,8 @@ class LRPCipher implements CipherInterface
      * - 8-byte input = 16 nibbles (used for PICC random in NTAG 424 DNA)
      * - 6-byte input = 12 nibbles (used for read counter in NTAG 424 DNA)
      * - 16-byte input = 32 nibbles (standard AES block size)
+     *
+     * @internal This method is public only for unit testing purposes
      *
      * @param array<int, string> $plaintexts Precomputed plaintexts
      * @param string             $key        Updated key
