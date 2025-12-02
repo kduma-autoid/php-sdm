@@ -38,41 +38,13 @@ class ParameterParser
             );
         }
 
-        // Validate hex string lengths are even
-        if (strlen($piccData) % 2 !== 0) {
-            throw new \InvalidArgumentException(
-                sprintf('Invalid %s parameter: must have even length', $paramNames['enc_picc_data'])
-            );
-        }
-
-        if (strlen($sdmmac) % 2 !== 0) {
-            throw new \InvalidArgumentException(
-                sprintf('Invalid %s parameter: must have even length', $paramNames['sdmmac'])
-            );
-        }
-
-        // Decode hex strings to binary
-        $piccDataBin = hex2bin($piccData);
-        $sdmmacBin = hex2bin($sdmmac);
-
-        if ($piccDataBin === false || $sdmmacBin === false) {
-            throw new \InvalidArgumentException('Failed to decode parameters: invalid hexadecimal format');
-        }
+        // Validate and decode hex strings
+        $piccDataBin = self::validateAndDecodeHex($piccData, $paramNames['enc_picc_data']);
+        $sdmmacBin = self::validateAndDecodeHex($sdmmac, $paramNames['sdmmac']);
 
         $encFileDataBin = null;
         if (! empty($encFileData)) {
-            if (strlen($encFileData) % 2 !== 0) {
-                throw new \InvalidArgumentException(
-                    sprintf('Invalid %s parameter: must have even length', $paramNames['enc_file_data'])
-                );
-            }
-
-            $encFileDataBin = hex2bin($encFileData);
-            if ($encFileDataBin === false) {
-                throw new \InvalidArgumentException(
-                    sprintf('Failed to decode %s parameter: invalid hexadecimal format', $paramNames['enc_file_data'])
-                );
-            }
+            $encFileDataBin = self::validateAndDecodeHex($encFileData, $paramNames['enc_file_data']);
         }
 
         // Detect encryption mode based on PICC data length
@@ -106,33 +78,10 @@ class ParameterParser
             );
         }
 
-        // Validate hex string lengths are even
-        if (strlen($uid) % 2 !== 0) {
-            throw new \InvalidArgumentException(
-                sprintf('Invalid %s parameter: must have even length', $paramNames['uid'])
-            );
-        }
-
-        if (strlen($ctr) % 2 !== 0) {
-            throw new \InvalidArgumentException(
-                sprintf('Invalid %s parameter: must have even length', $paramNames['ctr'])
-            );
-        }
-
-        if (strlen($sdmmac) % 2 !== 0) {
-            throw new \InvalidArgumentException(
-                sprintf('Invalid %s parameter: must have even length', $paramNames['sdmmac'])
-            );
-        }
-
-        // Decode hex strings to binary
-        $uidBin = hex2bin($uid);
-        $ctrBin = hex2bin($ctr);
-        $sdmmacBin = hex2bin($sdmmac);
-
-        if ($uidBin === false || $ctrBin === false || $sdmmacBin === false) {
-            throw new \InvalidArgumentException('Failed to decode parameters: invalid hexadecimal format');
-        }
+        // Validate and decode hex strings
+        $uidBin = self::validateAndDecodeHex($uid, $paramNames['uid']);
+        $ctrBin = self::validateAndDecodeHex($ctr, $paramNames['ctr']);
+        $sdmmacBin = self::validateAndDecodeHex($sdmmac, $paramNames['sdmmac']);
 
         return [
             'uid' => $uidBin,
@@ -211,6 +160,36 @@ class ParameterParser
                 sprintf('Invalid PICC data length: %d bytes (expected 16 for AES or 24 for LRP)', $length)
             ),
         };
+    }
+
+    /**
+     * Validate and decode a hexadecimal string parameter.
+     *
+     * @param  string  $value      The hex string to validate and decode
+     * @param  string  $paramName  The parameter name (for error messages)
+     *
+     * @return string The decoded binary string
+     *
+     * @throws \InvalidArgumentException if validation or decoding fails
+     */
+    private static function validateAndDecodeHex(string $value, string $paramName): string
+    {
+        // Validate hex string length is even
+        if (strlen($value) % 2 !== 0) {
+            throw new \InvalidArgumentException(
+                sprintf('Invalid %s parameter: must have even length', $paramName)
+            );
+        }
+
+        // Decode hex string to binary
+        $decoded = hex2bin($value);
+        if ($decoded === false) {
+            throw new \InvalidArgumentException(
+                sprintf('Failed to decode %s parameter: invalid hexadecimal format', $paramName)
+            );
+        }
+
+        return $decoded;
     }
 
     /**
